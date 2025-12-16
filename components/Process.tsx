@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Ruler, Palette, Wand2, Layers, 
   Hammer, Zap, Sun, Gem, Scissors, 
-  Fingerprint, Eye, Sparkles, Moon, Coffee, Star, X, AlertTriangle, Truck, Camera, HelpCircle, Package, Check, ChevronDown, ZoomIn, Heart, Info, Circle, Send, ArrowRight, ArrowLeft, RefreshCcw, Layout, ShoppingCart
+  Fingerprint, Eye, Sparkles, Moon, Coffee, Star, X, AlertTriangle, Truck, Camera, HelpCircle, Package, Check, ChevronDown, ZoomIn, Heart, Info, Circle, Send, ArrowRight, ArrowLeft, RefreshCcw, Layout, ShoppingCart, Clock, AlertCircle, Calendar, Gift
 } from 'lucide-react';
 import { PROCESS_CONTENT, SITE_STATUS, FULFILLMENT_CONTENT, CONSULTATION_CONTENT, SELF_WILL_MATERIALS, WISH_MODAL_CONTENT } from '../content';
 import { useOrder, FluidSelection } from '../contexts/OrderContext';
@@ -46,6 +46,9 @@ const Process: React.FC = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   
+  // Fulfillment Logic
+  const [productionMode, setProductionMode] = useState<'regular' | 'rush'>('regular');
+  
   // Fluid Logic
   const [buddhaInput, setBuddhaInput] = useState('');
   const [isSurpriseAnimating, setIsSurpriseAnimating] = useState(false);
@@ -53,9 +56,6 @@ const Process: React.FC = () => {
   const [customMaterials, setCustomMaterials] = useState<Array<{id: string, name: string, img: string}>>([]);
   const [expandFluidCategory, setExpandFluidCategory] = useState<string | null>('base');
   
-  // Rush Logic
-  const [isRushEnabled, setIsRushEnabled] = useState(false);
-
   // Blind Box Wish Logic
   const [showWishModal, setShowWishModal] = useState(false);
   const [wishModalStep, setWishModalStep] = useState<'options' | 'blindbox'>('options');
@@ -73,6 +73,22 @@ const Process: React.FC = () => {
     // Restore state from context if available
     if (selectedFluid?.strategyId === 'buddha' && selectedFluid.note) setBuddhaInput(selectedFluid.note);
   }, [selectedFluid]);
+
+  // Sync rush state with toggle
+  useEffect(() => {
+     if (selectedRush) {
+         setProductionMode('rush');
+     } else {
+         setProductionMode('regular');
+     }
+  }, [selectedRush]);
+
+  const handleProductionChange = (mode: 'regular' | 'rush') => {
+      setProductionMode(mode);
+      if (mode === 'regular') {
+          selectRush(null); // Clear rush selection
+      }
+  };
 
   // Define Steps based on Path
   const steps: Step[] = [
@@ -108,6 +124,16 @@ const Process: React.FC = () => {
        isCompleted: !!selectedDecorationPackage,
        summary: selectedDecorationPackage ? selectedDecorationPackage.name : undefined
      });
+     
+     // Final Step for Package Mode
+     steps.push({
+        id: 'fulfillment',
+        title: '5. 交付 · 契约',
+        icon: <Truck className="w-4 h-4" />,
+        isCompleted: !!selectedPackaging,
+        summary: selectedPackaging ? `${productionMode === 'rush' ? '加急' : '慢酿'} / ${selectedPackaging.tag}` : '待确认'
+     });
+
   } else {
      // Path B Steps
      const structureCount = selectedAddons?.filter(a => a.category === 'Structure').length || 0;
@@ -121,6 +147,15 @@ const Process: React.FC = () => {
        { id: 'enhancement', title: '5. 表现层 (可微调)', icon: <Eye className="w-4 h-4" />, isCompleted: true, summary: visualCount > 0 ? `${visualCount} 项已选` : '无额外特效' },
        { id: 'external', title: '6. 装饰层 (最安全)', icon: <Gem className="w-4 h-4" />, isCompleted: true, summary: externalCount > 0 ? `${externalCount} 项已选` : '无额外装饰' }
      );
+
+     // Final Step for Custom Mode
+     steps.push({
+        id: 'fulfillment',
+        title: '7. 交付 · 契约',
+        icon: <Truck className="w-4 h-4" />,
+        isCompleted: !!selectedPackaging,
+        summary: selectedPackaging ? `${productionMode === 'rush' ? '加急' : '慢酿'} / ${selectedPackaging.tag}` : '待确认'
+     });
   }
 
   // Scroll to step helper
@@ -174,12 +209,10 @@ const Process: React.FC = () => {
         
         if (hasCustomItems) {
             // Use setTimeout to unblock the UI/Event Loop before showing the blocking confirm dialog
-            // This fixes the "unclickable" feel on some browsers
             setTimeout(() => {
                 if (window.confirm('切换至【主厨推荐模式】将清空您在【自助餐模式】下已选的所有结构与装饰。\n\n确定要放弃当前选择并切换吗？')) {
                     clearAddons();
                     setDecorationMode('package');
-                    // Add small delay to allow state to settle
                     setTimeout(advanceStep, 100);
                 }
             }, 50);
@@ -220,17 +253,6 @@ const Process: React.FC = () => {
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold text-gray-800 mb-3">{content.sectionTitle}<span className="text-primary-400 font-light ml-2 text-2xl">{content.sectionSubtitle}</span></h2>
             <p className="text-gray-500">{content.intro}</p>
-          </div>
-
-          <div className="max-w-xl mx-auto mb-10">
-            <button onClick={() => { setConsultationMode(true); toggleModal(true); }} className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all duration-300 border border-dashed ${consultationMode ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-100' : 'bg-white border-gray-300 hover:border-indigo-300 hover:bg-indigo-50/50'}`}>
-                <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-500 shrink-0"><HelpCircle className="w-6 h-6" /></div>
-                <div className="text-left flex-1">
-                <h3 className="font-bold text-gray-800">{CONSULTATION_CONTENT.title}</h3>
-                <p className="text-xs text-gray-500">{CONSULTATION_CONTENT.desc}</p>
-                </div>
-                <div className="text-indigo-500 font-medium text-sm">{consultationMode ? '已激活' : '点击咨询'} &rarr;</div>
-            </button>
           </div>
 
           {/* --- STACKED CARD INTERFACE --- */}
@@ -496,6 +518,15 @@ const Process: React.FC = () => {
                                          * 装饰方案为整体设计密度，不逐项选择材料。特殊结构设计将单独确认。
                                       </p>
                                    </div>
+                                   
+                                   <div className="mt-4 flex justify-end">
+                                      <button 
+                                         onClick={advanceStep}
+                                         className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold bg-gray-900 text-white hover:bg-black transition-colors shadow-md"
+                                      >
+                                         下一步 <ArrowRight className="w-4 h-4"/>
+                                      </button>
+                                   </div>
                                 </div>
                              )}
 
@@ -553,92 +584,143 @@ const Process: React.FC = () => {
                                       </button>
                                       
                                       <button 
-                                         onClick={() => {
-                                             if (index === steps.length - 1) {
-                                                toggleModal(true); // Open Checkout on Finish
-                                             } else {
-                                                advanceStep();
-                                             }
-                                         }}
-                                         className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-colors shadow-md ${index === steps.length - 1 ? 'bg-primary-500 hover:bg-primary-600 text-white' : 'bg-gray-900 text-white hover:bg-black'}`}
+                                         onClick={() => advanceStep()}
+                                         className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold bg-gray-900 text-white hover:bg-black transition-colors shadow-md"
                                       >
-                                         {index === steps.length - 1 ? (
-                                             <>完成 <ShoppingCart className="w-4 h-4" /></>
-                                         ) : (
-                                             <>下一步 <ArrowRight className="w-4 h-4"/></>
-                                         )}
+                                         下一步 <ArrowRight className="w-4 h-4"/>
                                       </button>
                                    </div>
                                 </div>
                              )}
+
+                             {/* --- FINAL STEP: FULFILLMENT & PACKAGING --- */}
+                             {step.id === 'fulfillment' && (
+                                <div className="space-y-8">
+                                    
+                                    {/* 1. Production Mode Toggle */}
+                                    <div className="space-y-4">
+                                        <div className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                            <Clock className="w-4 h-4 text-gray-500" />
+                                            选择制作工期
+                                        </div>
+                                        
+                                        <div className="grid gap-3">
+                                            {/* Option A: Regular */}
+                                            <div 
+                                                onClick={() => handleProductionChange('regular')}
+                                                className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all ${productionMode === 'regular' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-500 flex items-center justify-center text-xl shrink-0">⏳</div>
+                                                    <div>
+                                                        <div className="font-bold text-gray-800">愿意等待魔法慢酿</div>
+                                                        <div className="text-xs text-gray-500">工期约 7-14 天，慢工出细活。</div>
+                                                    </div>
+                                                    {productionMode === 'regular' && <Check className="w-5 h-5 text-primary-500 ml-auto" />}
+                                                </div>
+                                            </div>
+
+                                            {/* Option B: Rush */}
+                                            <div 
+                                                onClick={() => handleProductionChange('rush')}
+                                                className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all ${productionMode === 'rush' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center text-xl shrink-0">🚀</div>
+                                                    <div>
+                                                        <div className="font-bold text-gray-800">想要心意极速送达</div>
+                                                        <div className="text-xs text-gray-500">工期约 3-7 天，优先排单制作。</div>
+                                                    </div>
+                                                    {productionMode === 'rush' && <Check className="w-5 h-5 text-orange-500 ml-auto" />}
+                                                </div>
+
+                                                {/* Expanded Rush Options */}
+                                                {productionMode === 'rush' && (
+                                                    <div className="mt-4 pt-4 border-t border-orange-200/50 animate-fade-in">
+                                                        <div className="text-[10px] text-orange-600 bg-orange-100/50 p-2 rounded mb-3 flex items-start gap-2">
+                                                            <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                                                            {FULFILLMENT_CONTENT.rush.warning}
+                                                        </div>
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            {FULFILLMENT_CONTENT.rush.tiers.map((tier, idx) => (
+                                                                <div 
+                                                                    key={idx} 
+                                                                    onClick={(e) => { e.stopPropagation(); !isBusy && selectRush(tier); }}
+                                                                    className={`border rounded-xl p-2 text-center cursor-pointer transition-all ${selectedRush?.name === tier.name ? 'border-orange-500 bg-white ring-1 ring-orange-200 shadow-sm' : 'border-gray-200 bg-white/50 hover:bg-white'}`}
+                                                                >
+                                                                    <div className="text-lg mb-1">{tier.icon}</div>
+                                                                    <div className="font-bold text-xs text-gray-800 scale-90">{tier.name}</div>
+                                                                    <div className="text-[10px] text-gray-400 scale-75 origin-center">{tier.time}</div>
+                                                                    <div className="text-orange-600 font-bold text-xs mt-1">{tier.fee}</div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <div className="text-center pt-2 text-[10px] text-gray-400">
+                                                            {isBusy ? FULFILLMENT_CONTENT.rush.status.busy : FULFILLMENT_CONTENT.rush.status.idle}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Packaging Selection */}
+                                    <div className="space-y-4">
+                                        <div className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                            <Gift className="w-4 h-4 text-gray-500" />
+                                            选择包装方案
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {FULFILLMENT_CONTENT.packaging.map((pack, idx) => {
+                                                const isSelected = selectedPackaging?.title === pack.title || (!selectedPackaging && idx === 0);
+                                                // Auto-select default packaging if none selected
+                                                if (!selectedPackaging && idx === 0) {
+                                                    // Use effect to avoid render loop, simplified here by logic
+                                                }
+
+                                                return (
+                                                    <div 
+                                                        key={idx} 
+                                                        onClick={() => selectPackaging(pack)}
+                                                        className={`border rounded-xl p-4 cursor-pointer transition-all ${isSelected ? 'border-primary-500 bg-white ring-1 ring-primary-200 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                                                    >
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <Package className={`w-5 h-5 ${isSelected ? 'text-primary-500' : 'text-gray-400'}`} />
+                                                            <div className="text-xs font-bold bg-gray-100 px-2 py-0.5 rounded">{pack.tag}</div>
+                                                        </div>
+                                                        <h4 className="font-bold text-gray-800 text-sm mb-1">{pack.title}</h4>
+                                                        <p className="text-xs text-gray-400 line-clamp-2">{pack.desc}</p>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Action Button */}
+                                    <div className="mt-8 pt-6 border-t border-gray-100 flex justify-between items-center">
+                                       <button 
+                                          onClick={prevStep}
+                                          className="flex items-center gap-2 text-gray-500 text-sm hover:text-gray-800 transition-colors"
+                                       >
+                                          <ArrowLeft className="w-4 h-4"/> 上一步
+                                       </button>
+                                       
+                                       <button 
+                                          onClick={() => toggleModal(true)}
+                                          className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold bg-primary-500 text-white hover:bg-primary-600 transition-colors shadow-lg hover:shadow-primary-200 animate-pulse"
+                                       >
+                                          完成并预览契约 <ShoppingCart className="w-4 h-4" />
+                                       </button>
+                                    </div>
+                                </div>
+                             )}
+
                           </div>
                        </div>
                     )}
                  </div>
                );
              })}
-
-             {/* Completion / Next Actions (Fulfillment & Rush) */}
-             <div className="border-t-2 border-dashed border-gray-100 pt-10 mt-10">
-                <div className="text-center mb-8">
-                   <h2 className="text-2xl font-bold text-gray-800">契约履行</h2>
-                   <p className="text-gray-400 text-sm">Fulfillment & Delivery</p>
-                </div>
-                
-                {/* Rush Option */}
-                <div className={`rounded-2xl p-6 transition-all duration-500 mb-6 border ${isRushEnabled ? 'bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100' : 'bg-white border-gray-200'}`}>
-                   <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                         <span className={`text-2xl transition-transform ${isRushEnabled ? 'scale-125' : ''}`}>🚀</span>
-                         <div>
-                            <h3 className="font-bold text-gray-800">魔法加速 (加急)</h3>
-                            <p className="text-xs text-gray-500">当心意迫不及待...</p>
-                         </div>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                         <input type="checkbox" checked={isRushEnabled} onChange={(e) => { setIsRushEnabled(e.target.checked); if(!e.target.checked) selectRush(null); }} className="sr-only peer" disabled={isBusy} />
-                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
-                      </label>
-                   </div>
-                   
-                   {isRushEnabled && (
-                      <div className="mt-6 grid grid-cols-3 gap-3 animate-fade-in">
-                         {FULFILLMENT_CONTENT.rush.tiers.map((tier, idx) => (
-                            <div 
-                               key={idx} 
-                               onClick={() => !isBusy && selectRush(tier)}
-                               className={`border rounded-xl p-3 text-center cursor-pointer transition-all ${selectedRush?.name === tier.name ? 'border-primary-500 bg-white ring-1 ring-primary-200' : 'border-gray-200 bg-white/50 hover:bg-white'}`}
-                            >
-                               <div className="text-xl mb-1">{tier.icon}</div>
-                               <div className="font-bold text-xs text-gray-800">{tier.name}</div>
-                               <div className="text-primary-600 font-bold text-xs">{tier.fee}</div>
-                            </div>
-                         ))}
-                      </div>
-                   )}
-                </div>
-
-                {/* Packaging Option */}
-                <div className="grid grid-cols-2 gap-4">
-                   {FULFILLMENT_CONTENT.packaging.map((pack, idx) => {
-                      const isSelected = selectedPackaging?.title === pack.title || (!selectedPackaging && idx === 0);
-                      return (
-                         <div 
-                            key={idx} 
-                            onClick={() => selectPackaging(pack)}
-                            className={`border rounded-xl p-4 cursor-pointer transition-all ${isSelected ? 'border-primary-500 bg-white ring-1 ring-primary-200 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300'}`}
-                         >
-                            <div className="flex justify-between items-start mb-2">
-                               <Package className={`w-5 h-5 ${isSelected ? 'text-primary-500' : 'text-gray-400'}`} />
-                               <div className="text-xs font-bold bg-gray-100 px-2 py-0.5 rounded">{pack.tag}</div>
-                            </div>
-                            <h4 className="font-bold text-gray-800 text-sm mb-1">{pack.title}</h4>
-                            <p className="text-xs text-gray-400 line-clamp-2">{pack.desc}</p>
-                         </div>
-                      )
-                   })}
-                </div>
-             </div>
           </div>
        </div>
 

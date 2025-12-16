@@ -27,6 +27,7 @@ export interface RushItem {
 export interface PackagingItem {
   title: string;
   price: number;
+  tag: string;
 }
 
 // Fluid Strategy Type
@@ -303,6 +304,13 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const selectRush = (item: any) => {
+    // If item is null (clearing selection via logic)
+    if (!item) {
+        setSelectedRush(null);
+        return;
+    }
+    
+    // Toggle logic if clicking same item
     if (selectedRush?.name === item.name) {
       setSelectedRush(null);
     } else {
@@ -318,7 +326,8 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const selectPackaging = (item: any) => {
     setSelectedPackaging({
       title: item.title,
-      price: item.priceNum
+      price: item.priceNum,
+      tag: item.tag
     });
   };
 
