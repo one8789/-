@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
 import { DISCOUNT_CODES } from '../content';
 import { isComplexPrice } from '../utils/price';
+import { DecorationMode, DecorationPackage } from '../types';
 
 // Define structure for an order item
 export interface OrderItem {
@@ -8,16 +9,14 @@ export interface OrderItem {
   name: string;
   priceStr: string;
   price: number;
+  multiplier?: number; // Support for structure multiplier
 }
 
 export interface SizeItem extends OrderItem {
   isSmallSize: boolean;
 }
 
-export interface CraftItem extends OrderItem {
-  multiplier?: number; // e.g. 2 for Double Layer
-}
-
+// Rush Item remains separate
 export interface RushItem {
   id: string;
   name: string;
@@ -32,7 +31,7 @@ export interface PackagingItem {
 
 // Fluid Strategy Type
 export interface FluidSelection {
-  strategyId: 'buddha' | 'self' | 'surprise';
+  strategyId: 'buddha' | 'self' | 'surprise' | 'blindbox';
   strategyTitle: string;
   description: string;
   materials?: string[]; // for Self-Will
@@ -61,6 +60,7 @@ interface BreakdownDetails {
   rushFeeAmount: number;
   packagingFee: number;
   thresholdErrors: string[];
+  totalSavings: number;
 }
 
 interface Notification {
@@ -70,24 +70,30 @@ interface Notification {
 
 interface OrderContextType {
   selectedSize: SizeItem | null;
-  selectedCraft: CraftItem | null;
   selectedAddons: OrderItem[];
   selectedRush: RushItem | null;
   selectedPackaging: PackagingItem | null;
   selectedFluid: FluidSelection | null;
   
+  decorationMode: DecorationMode;
+  selectedDecorationPackage: DecorationPackage | null;
+
   appliedDiscounts: DiscountRule[];
   isModalOpen: boolean;
   consultationMode: boolean; 
   discountNotification: Notification | null;
 
   selectSize: (item: any) => void;
-  selectCraft: (item: any) => void;
-  toggleAddon: (category: string, name: string, priceStr: string, priceNum: number) => void;
+  // selectCraft removed, use toggleAddon for structures too
+  toggleAddon: (category: string, name: string, priceStr: string, priceNum: number, multiplier?: number) => void;
   removeAddon: (category: string, name: string) => void;
+  clearAddons: () => void; // New method
   selectRush: (item: any) => void;
   selectPackaging: (item: any) => void;
   selectFluid: (fluid: FluidSelection | null) => void;
+  
+  setDecorationMode: (mode: DecorationMode) => void;
+  selectDecorationPackage: (pkg: DecorationPackage | null) => void;
 
   clearOrder: () => void;
   addDiscount: (code: string) => void;
@@ -105,12 +111,15 @@ const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
 export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [selectedSize, setSelectedSize] = useState<SizeItem | null>(null);
-  const [selectedCraft, setSelectedCraft] = useState<CraftItem | null>(null);
-  const [selectedAddons, setSelectedAddons] = useState<OrderItem[]>([]);
+  const [selectedAddons, setSelectedAddons] = useState<OrderItem[]>([]); // Handles both Structure and Decorations for Path B
   const [selectedRush, setSelectedRush] = useState<RushItem | null>(null);
   const [selectedPackaging, setSelectedPackaging] = useState<PackagingItem | null>(null);
   const [selectedFluid, setSelectedFluid] = useState<FluidSelection | null>(null);
   
+  // New States for Two-Path Strategy
+  const [decorationMode, setDecorationMode] = useState<DecorationMode>('package');
+  const [selectedDecorationPackage, setSelectedDecorationPackage] = useState<DecorationPackage | null>(null);
+
   const [appliedDiscounts, setAppliedDiscounts] = useState<DiscountRule[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [consultationMode, setConsultationMode] = useState(false);
@@ -136,22 +145,15 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
 
     // Stacking Logic
-    // Scenario 1: New code is exclusive
     if (rule.exclusive) {
       setAppliedDiscounts([rule]);
       setDiscountNotification({ type: 'success', message: `大额优惠券不可叠加哦~ 已为您替换为: ${rule.label}` });
     } else {
-      // Scenario 2: New code is exclusive: false
-      // Check if there's already an exclusive: true code in appliedDiscounts
       const hasExclusive = appliedDiscounts.some(d => d.exclusive);
-      
       if (hasExclusive) {
-        // Reject the new code
         setDiscountNotification({ type: 'error', message: '当前已使用互斥优惠，无法叠加小红包' });
         return;
       }
-      
-      // If no exclusive code present, append
       setAppliedDiscounts(prev => [...prev, rule]);
       setDiscountNotification({ type: 'success', message: `成功添加优惠: ${rule.label}` });
     }
@@ -166,31 +168,57 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // 💰 COMPLEX PRICING CALCULATOR
   // =================================================================
   const priceCalculation = useMemo(() => {
-    // 1. Base Calculation (Size * Craft Multiplier)
+    // 1. Determine Base & Multiplier
     const basePrice = selectedSize ? selectedSize.price : 0;
-    const craftMultiplier = selectedCraft?.multiplier || 1;
+    
+    // Strict logic: If package mode, ignore custom addons. If custom mode, ignore package.
+    
+    let craftMultiplier = 1;
+    let rawAddonsTotal = 0;
+
+    if (decorationMode === 'package') {
+      // Path A: Package Mode
+      // Calculation: Base + Package Price
+      // Note: Packages usually don't have multipliers unless defined, assuming 1 here.
+      craftMultiplier = 1;
+      rawAddonsTotal = selectedDecorationPackage ? selectedDecorationPackage.price : 0;
+    } else {
+      // Path B: Custom Mode (Buffet)
+      // Calculation: (Base * MaxStructureMultiplier) + Sum(All Addon Prices)
+      
+      // Calculate Multiplier from Structure items in selectedAddons
+      // We take the MAXIMUM multiplier if multiple are selected (e.g. Double Layer x2)
+      // Standard items have multiplier 1 (undefined = 1)
+      const structureItems = selectedAddons.filter(item => item.category === 'Structure');
+      const maxMultiplier = structureItems.reduce((max, item) => Math.max(max, item.multiplier || 1), 1);
+      
+      craftMultiplier = maxMultiplier;
+      
+      // Sum all addon prices (including structure flat fees like +15r)
+      rawAddonsTotal = selectedAddons.reduce((sum, item) => sum + item.price, 0);
+    }
+
     const baseTotal = basePrice * craftMultiplier;
 
-    // 2. Addons Calculation (Sum * Small Size Discount)
-    const rawAddonsTotal = selectedAddons.reduce((sum, item) => sum + item.price, 0);
+    // 2. Addon Discount (Small Size 50% off decorations)
     const addonDiscountMultiplier = selectedSize?.isSmallSize ? 0.5 : 1;
     const addonTotal = rawAddonsTotal * addonDiscountMultiplier;
+    const addonSavings = rawAddonsTotal - addonTotal;
 
     // 3. Subtotal before discount
     const preDiscountTotal = baseTotal + addonTotal;
     
-    // 4. Apply Discount Logic (Calculation Order: Percent -> Fixed -> Threshold)
+    // 4. Apply Coupon Discounts
     let subTotal = preDiscountTotal;
     const thresholdErrors: string[] = [];
 
-    // Sort: Percent -> Fixed -> Threshold
     const sortedDiscounts = [...appliedDiscounts].sort((a, b) => {
         const order = { percent: 1, fixed: 2, threshold: 3 };
         return order[a.type] - order[b.type];
     });
 
     sortedDiscounts.forEach(d => {
-        const currentTotal = subTotal; // "rawTotal" for this step
+        const currentTotal = subTotal;
         
         if (d.type === 'percent') {
             subTotal = currentTotal * d.value;
@@ -205,15 +233,16 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     });
 
-    // 5. Rush Fee (Based on Subtotal)
+    // 5. Rush Fee
     const rushMultiplier = selectedRush ? selectedRush.multiplier : 0;
     const rushFeeAmount = Math.ceil(subTotal * rushMultiplier);
 
-    // 6. Packaging Fee (Fixed)
+    // 6. Packaging Fee
     const packagingFee = selectedPackaging ? selectedPackaging.price : 0;
 
-    // 7. Final Calculation
+    // 7. Final
     const actualDiscountAmount = preDiscountTotal - subTotal;
+    const totalSavings = addonSavings + actualDiscountAmount;
     const finalPrice = Math.floor(subTotal + rushFeeAmount + packagingFee);
 
     return {
@@ -227,19 +256,19 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         discountAmount: actualDiscountAmount,
         rushFeeAmount,
         packagingFee,
-        thresholdErrors
+        thresholdErrors,
+        totalSavings
       },
       finalPrice
     };
-  }, [selectedSize, selectedCraft, selectedAddons, selectedRush, selectedPackaging, appliedDiscounts]);
+  }, [selectedSize, selectedAddons, decorationMode, selectedDecorationPackage, selectedRush, selectedPackaging, appliedDiscounts]);
 
   const hasComplexItems = useMemo(() => {
     if (selectedSize && isComplexPrice(selectedSize.priceStr)) return true;
-    if (selectedCraft && isComplexPrice(selectedCraft.priceStr)) return true;
     if (selectedAddons.some(addon => isComplexPrice(addon.priceStr))) return true;
     if (selectedRush && isComplexPrice(selectedRush.feeStr)) return true;
     return false;
-  }, [selectedSize, selectedCraft, selectedAddons, selectedRush]);
+  }, [selectedSize, selectedAddons, selectedRush]);
 
   // Actions
   const selectSize = (item: any) => {
@@ -253,27 +282,13 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (consultationMode) setConsultationMode(false);
   };
 
-  const selectCraft = (item: any) => {
-    if (selectedCraft?.name === item.name) {
-      setSelectedCraft(null);
-    } else {
-      setSelectedCraft({
-        category: 'Structure',
-        name: item.name,
-        priceStr: item.price,
-        price: item.priceNum,
-        multiplier: item.multiplier || 1
-      });
-    }
-  };
-
-  const toggleAddon = (category: string, name: string, priceStr: string, priceNum: number) => {
+  const toggleAddon = (category: string, name: string, priceStr: string, priceNum: number, multiplier?: number) => {
     setSelectedAddons(prev => {
       const exists = prev.find(item => item.name === name && item.category === category);
       if (exists) {
         return prev.filter(item => item !== exists);
       } else {
-        return [...prev, { category, name, priceStr, price: priceNum }];
+        return [...prev, { category, name, priceStr, price: priceNum, multiplier }];
       }
     });
     if (consultationMode) setConsultationMode(false);
@@ -281,6 +296,10 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const removeAddon = (category: string, name: string) => {
     setSelectedAddons(prev => prev.filter(item => !(item.name === name && item.category === category)));
+  };
+
+  const clearAddons = () => {
+    setSelectedAddons([]);
   };
 
   const selectRush = (item: any) => {
@@ -307,10 +326,15 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setSelectedFluid(fluid);
   };
 
+  const selectDecorationPackage = (pkg: DecorationPackage | null) => {
+    setSelectedDecorationPackage(pkg);
+  };
+
   const clearOrder = () => {
     setSelectedSize(null);
-    setSelectedCraft(null);
     setSelectedAddons([]);
+    setSelectedDecorationPackage(null);
+    setDecorationMode('package');
     setSelectedRush(null);
     setSelectedPackaging(null);
     setSelectedFluid(null);
@@ -322,23 +346,29 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   return (
     <OrderContext.Provider value={{
       selectedSize,
-      selectedCraft,
-      selectedAddons,
+      selectedAddons, // Now contains structure items too
       selectedRush,
       selectedPackaging,
       selectedFluid,
+      
+      decorationMode,
+      selectedDecorationPackage,
+
       appliedDiscounts,
       isModalOpen,
       consultationMode,
       discountNotification,
       
       selectSize,
-      selectCraft,
       toggleAddon,
       removeAddon,
+      clearAddons,
       selectRush,
       selectPackaging,
       selectFluid,
+      
+      setDecorationMode,
+      selectDecorationPackage,
       
       clearOrder,
       addDiscount,

@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Ruler, Palette, Wand2, Layers, 
   Hammer, Zap, Sun, Gem, Scissors, 
-  Fingerprint, Eye, Sparkles, Moon, Coffee, Star, X, AlertTriangle, Truck, Camera, HelpCircle, Package, Check, ChevronDown, ZoomIn, Heart, Info, Circle
+  Fingerprint, Eye, Sparkles, Moon, Coffee, Star, X, AlertTriangle, Truck, Camera, HelpCircle, Package, Check, ChevronDown, ZoomIn, Heart, Info, Circle, Send, ArrowRight, ArrowLeft, RefreshCcw, Layout, ShoppingCart
 } from 'lucide-react';
-import { PROCESS_CONTENT, SITE_STATUS, FULFILLMENT_CONTENT, CONSULTATION_CONTENT, SELF_WILL_MATERIALS } from '../content';
+import { PROCESS_CONTENT, SITE_STATUS, FULFILLMENT_CONTENT, CONSULTATION_CONTENT, SELF_WILL_MATERIALS, WISH_MODAL_CONTENT } from '../content';
 import { useOrder, FluidSelection } from '../contexts/OrderContext';
 
-// Simple Lightbox Component for Process Images
+// --- Lightbox Component ---
 const ProcessLightbox: React.FC<{ src: string; onClose: () => void }> = ({ src, onClose }) => {
   return (
     <div 
@@ -22,927 +23,685 @@ const ProcessLightbox: React.FC<{ src: string; onClose: () => void }> = ({ src, 
   );
 };
 
-// Reusable Accordion Item
-interface AccordionItemProps {
+// --- Stacked Card Components ---
+
+interface Step {
   id: string;
-  isSelected: boolean;
-  isOpen: boolean;
-  onToggle: () => void;
-  onSelect: () => void;
-  title: React.ReactNode;
-  subtitle?: React.ReactNode;
-  image?: string;
-  priceTag?: string;
-  isWishTrigger?: boolean;
+  title: string;
+  icon: React.ReactNode;
+  isCompleted: boolean;
+  summary?: string;
 }
 
-const AccordionItem: React.FC<AccordionItemProps> = ({ 
-  id, isSelected, isOpen, onToggle, onSelect, title, subtitle, image, priceTag, isWishTrigger 
-}) => {
-  
-  const handleImageClick = (e: React.MouseEvent, imgSrc: string) => {
-    e.stopPropagation();
-    const event = new CustomEvent('openProcessLightbox', { detail: { src: imgSrc } });
-    window.dispatchEvent(event);
-  };
-
-  return (
-    <div 
-      className={`
-        border rounded-xl mb-3 overflow-hidden transition-all duration-300 relative
-        ${isSelected ? 'bg-primary-50 border-primary-500 ring-1 ring-primary-200' : 'bg-white border-gray-200'}
-      `}
-    >
-       <div 
-         className="flex items-center justify-between p-4 cursor-pointer active:bg-gray-50/50"
-         onClick={onSelect}
-       >
-          <div className="flex-1 pr-4">
-             <div className="flex items-center gap-2 mb-1">
-               <div className={`font-bold text-base ${isSelected ? 'text-primary-700' : 'text-gray-800'}`}>
-                 {title}
-               </div>
-               {priceTag && <span className="text-sm font-bold text-primary-500">{priceTag}</span>}
-               {isSelected && <Check className="w-4 h-4 text-primary-600" />}
-             </div>
-             {subtitle && <div className="text-xs text-gray-500 leading-tight">{subtitle}</div>}
-             
-             {isWishTrigger && (
-                <div className="mt-2 inline-flex items-center gap-1 text-[10px] text-orange-500 bg-orange-50 px-2 py-0.5 rounded font-bold">
-                  <Star className="w-3 h-3 fill-current" /> 此规格含福利
-                </div>
-             )}
-          </div>
-
-          <button 
-             onClick={(e) => { e.stopPropagation(); onToggle(); }}
-             className={`p-2 rounded-full hover:bg-black/5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
-          >
-             <ChevronDown className="w-5 h-5 text-gray-400" />
-          </button>
-       </div>
-
-       <div 
-         className={`
-           overflow-hidden transition-[max-height] duration-500 ease-in-out
-           ${isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}
-         `}
-       >
-          <div className="px-4 pb-4">
-            {image ? (
-              <div className="relative rounded-lg overflow-hidden h-48 w-full bg-gray-100 group border border-gray-100">
-                <img src={image} alt="preview" className="w-full h-full object-cover" />
-                <button 
-                   onClick={(e) => handleImageClick(e, image)}
-                   className="absolute top-2 right-2 bg-black/50 text-white p-1.5 rounded-full backdrop-blur hover:bg-black/70 transition-colors"
-                >
-                   <ZoomIn className="w-4 h-4" />
-                </button>
-                <div className="absolute inset-0 bg-transparent pointer-events-none" />
-              </div>
-            ) : (
-              <div className="h-24 bg-gray-50 rounded-lg flex items-center justify-center text-xs text-gray-400 border border-dashed border-gray-200">
-                暂无预览图
-              </div>
-            )}
-          </div>
-       </div>
-    </div>
-  );
-};
-
-
 const Process: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'base' | 'fluid' | 'decor' | 'advanced'>('base');
-  const [showWishModal, setShowWishModal] = useState(false);
+  // Context
+  const { 
+    selectedSize, selectedFluid, selectedDecorationPackage, selectedAddons, selectedRush, selectedPackaging,
+    selectSize, selectFluid, selectDecorationPackage, toggleAddon, removeAddon, clearAddons, selectRush, selectPackaging,
+    decorationMode, setDecorationMode,
+    setConsultationMode, consultationMode, toggleModal
+  } = useOrder();
+
+  // Local State
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   
-  // Accordion State: Track which ID is open
-  const [openAccordionId, setOpenAccordionId] = useState<string | null>(null);
-
-  // Fluid UI States
+  // Fluid Logic
   const [buddhaInput, setBuddhaInput] = useState('');
   const [isSurpriseAnimating, setIsSurpriseAnimating] = useState(false);
   const [isSurpriseDone, setIsSurpriseDone] = useState(false);
   const [customMaterials, setCustomMaterials] = useState<Array<{id: string, name: string, img: string}>>([]);
   const [expandFluidCategory, setExpandFluidCategory] = useState<string | null>('base');
+  
+  // Rush Logic
+  const [isRushEnabled, setIsRushEnabled] = useState(false);
 
-  // Hook into Order Context
-  const { 
-    selectedSize, selectedAddons, selectedCraft, selectedRush, selectedPackaging, selectedFluid,
-    selectSize, selectCraft, toggleAddon, selectRush, selectPackaging, selectFluid,
-    setConsultationMode, consultationMode, toggleModal
-  } = useOrder();
-
-  const {
-    sectionTitle, sectionSubtitle, intro,
-    sizes, sizeNote,
-    fluids,
-    decor,
-    advanced
-  } = PROCESS_CONTENT;
+  // Blind Box Wish Logic
+  const [showWishModal, setShowWishModal] = useState(false);
+  const [wishModalStep, setWishModalStep] = useState<'options' | 'blindbox'>('options');
+  const [showDiyNotice, setShowDiyNotice] = useState(false);
+  const [blindboxStyleTags, setBlindboxStyleTags] = useState<string[]>([]);
+  const [blindboxStyleInput, setBlindboxStyleInput] = useState('');
+  const [blindboxTabooInput, setBlindboxTabooInput] = useState('');
+  const [blindboxError, setBlindboxError] = useState('');
 
   const { isBusy } = SITE_STATUS;
+  const content = PROCESS_CONTENT;
 
-  // Listen for custom lightbox event
+  // Effects
   useEffect(() => {
-    const handler = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      if (customEvent.detail && customEvent.detail.src) {
-        setLightboxSrc(customEvent.detail.src);
-      }
-    };
-    window.addEventListener('openProcessLightbox', handler);
-    return () => window.removeEventListener('openProcessLightbox', handler);
-  }, []);
-
-  // Sync Buddha Input with Context if re-entering
-  useEffect(() => {
-    if (selectedFluid?.strategyId === 'buddha' && selectedFluid.note) {
-      setBuddhaInput(selectedFluid.note);
-    }
-    // If selected fluid is NOT surprise, reset the surprise animation state
-    if (selectedFluid?.strategyId !== 'surprise') {
-        setIsSurpriseDone(false);
-        setIsSurpriseAnimating(false);
-    }
+    // Restore state from context if available
+    if (selectedFluid?.strategyId === 'buddha' && selectedFluid.note) setBuddhaInput(selectedFluid.note);
   }, [selectedFluid]);
 
-  const tabs = [
-    { id: 'base', label: '1. 选画框', icon: <Ruler className="w-4 h-4" /> },
-    { id: 'fluid', label: '2. 调流沙', icon: <Palette className="w-4 h-4" /> },
-    { id: 'decor', label: '3. 加装饰', icon: <Wand2 className="w-4 h-4" /> },
-    { id: 'advanced', label: '4. 进阶玩法', icon: <Layers className="w-4 h-4" /> },
+  // Define Steps based on Path
+  const steps: Step[] = [
+    { 
+      id: 'size', 
+      title: '1. 画框 · 基础', 
+      icon: <Ruler className="w-4 h-4" />, 
+      isCompleted: !!selectedSize,
+      summary: selectedSize ? `${selectedSize.name} (${selectedSize.priceStr})` : undefined
+    },
+    { 
+      id: 'fluid', 
+      title: '2. 配方 · 灵魂', 
+      icon: <Palette className="w-4 h-4" />, 
+      isCompleted: !!selectedFluid,
+      summary: selectedFluid ? selectedFluid.strategyTitle : undefined
+    },
+    {
+      id: 'mode',
+      title: '3. 装饰 · 策略',
+      icon: <Layout className="w-4 h-4" />,
+      isCompleted: false, // Always active until user clicks next
+      summary: decorationMode === 'package' ? '主厨推荐模式 (套餐)' : '自助餐模式 (自选)'
+    }
   ];
 
-  const handleSizeClick = (item: any) => {
+  // Dynamically add steps based on Mode
+  if (decorationMode === 'package') {
+     steps.push({
+       id: 'package',
+       title: '4. 选择装饰密度',
+       icon: <Sparkles className="w-4 h-4" />,
+       isCompleted: !!selectedDecorationPackage,
+       summary: selectedDecorationPackage ? selectedDecorationPackage.name : undefined
+     });
+  } else {
+     // Path B Steps
+     const structureCount = selectedAddons?.filter(a => a.category === 'Structure').length || 0;
+     const structureSummary = structureCount > 0 ? `${structureCount} 项已选` : '标准结构 (默认)';
+
+     const visualCount = selectedAddons?.filter(a => ['Visual Effect', 'Hidden', 'Surface'].includes(a.category)).length || 0;
+     const externalCount = selectedAddons?.filter(a => ['External', 'Collage', 'Baroque'].includes(a.category)).length || 0;
+
+     steps.push(
+       { id: 'structure', title: '4. 结构层 (需确认)', icon: <Hammer className="w-4 h-4" />, isCompleted: true, summary: structureSummary },
+       { id: 'enhancement', title: '5. 表现层 (可微调)', icon: <Eye className="w-4 h-4" />, isCompleted: true, summary: visualCount > 0 ? `${visualCount} 项已选` : '无额外特效' },
+       { id: 'external', title: '6. 装饰层 (最安全)', icon: <Gem className="w-4 h-4" />, isCompleted: true, summary: externalCount > 0 ? `${externalCount} 项已选` : '无额外装饰' }
+     );
+  }
+
+  // Scroll to step helper
+  const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const handleStepClick = (index: number) => {
+    // Only allow going back to previous steps, or current step
+    if (index <= currentStepIndex) {
+      setCurrentStepIndex(index);
+      stepRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const advanceStep = () => {
+    if (currentStepIndex < steps.length - 1) {
+      setCurrentStepIndex(prev => prev + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex(prev => prev - 1);
+    }
+  };
+
+  // --- Handlers ---
+  const handleSizeSelect = (item: any) => {
     selectSize(item);
-    if (item.triggerWish) {
-      setShowWishModal(true);
+    if (item.triggerWish) setShowWishModal(true);
+    setTimeout(advanceStep, 300);
+  };
+
+  const handleFluidSelect = (val: FluidSelection) => {
+    selectFluid(val);
+    if (val.strategyId !== 'self') {
+        setTimeout(advanceStep, 500);
     }
   };
 
-  const handleAddonToggle = (category: string, item: any) => {
-    toggleAddon(category, item.name, item.price, item.priceNum);
-  };
-  
-  const isAddonSelected = (name: string) => {
-    return selectedAddons.some(addon => addon.name === name);
-  };
-
-  const handleAccordionToggle = (id: string) => {
-    setOpenAccordionId(openAccordionId === id ? null : id);
-  };
-
-  const getRushColor = (color: string) => {
-    switch (color) {
-      case 'purple': return 'bg-purple-100 text-purple-600 border-purple-200';
-      case 'red': return 'bg-red-100 text-red-600 border-red-200';
-      case 'blue': return 'bg-blue-100 text-blue-600 border-blue-200';
-      default: return 'bg-gray-100 text-gray-600';
-    }
-  };
-
-  // --- Fluid Logic Handlers ---
-
-  const handleBuddhaInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setBuddhaInput(val);
-    selectFluid({
-      strategyId: 'buddha',
-      strategyTitle: '佛系选',
-      description: '由小狼调配',
-      note: val
-    });
-  };
-
-  // Toggle Logic for Surprise
-  const handleSurpriseClick = () => {
-    // If already selected, deselect (Toggle OFF)
-    if (selectedFluid?.strategyId === 'surprise') {
-        selectFluid(null);
-        setIsSurpriseDone(false);
-        setIsSurpriseAnimating(false);
+  const handleModeSelect = (targetMode: 'package' | 'custom') => {
+    // 1. Same Mode Click -> Advance
+    if (targetMode === decorationMode) {
+        setTimeout(advanceStep, 300);
         return;
     }
 
-    // If not selected, start animation (Toggle ON)
-    setIsSurpriseAnimating(true);
-    setTimeout(() => {
-      setIsSurpriseAnimating(false);
-      setIsSurpriseDone(true);
-      selectFluid({
-        strategyId: 'surprise',
-        strategyTitle: '开惊喜',
-        description: '小狼的即兴创作'
-      });
-    }, 1500); // Shorter animation for snappier feel
+    // 2. Switch to Package (Potential Conflict)
+    if (targetMode === 'package') {
+        // Safe check for array existence
+        const hasCustomItems = selectedAddons && selectedAddons.length > 0;
+        
+        if (hasCustomItems) {
+            // Use setTimeout to unblock the UI/Event Loop before showing the blocking confirm dialog
+            // This fixes the "unclickable" feel on some browsers
+            setTimeout(() => {
+                if (window.confirm('切换至【主厨推荐模式】将清空您在【自助餐模式】下已选的所有结构与装饰。\n\n确定要放弃当前选择并切换吗？')) {
+                    clearAddons();
+                    setDecorationMode('package');
+                    // Add small delay to allow state to settle
+                    setTimeout(advanceStep, 100);
+                }
+            }, 50);
+            return;
+        } 
+        
+        // No items selected, direct switch
+        setDecorationMode('package');
+        setTimeout(advanceStep, 300);
+        return;
+    }
+
+    // 3. Switch to Custom (Safe)
+    if (targetMode === 'custom') {
+        selectDecorationPackage(null);
+        setDecorationMode('custom');
+        setTimeout(advanceStep, 300);
+    }
   };
 
-  const handleMaterialToggle = (mat: {id: string, name: string, img: string}) => {
-    setCustomMaterials(prev => {
-      const exists = prev.find(p => p.id === mat.id);
-      let newMaterials;
-      if (exists) {
-        newMaterials = prev.filter(p => p.id !== mat.id);
-      } else {
-        newMaterials = [...prev, mat];
-      }
-      
-      // Update Context
-      selectFluid({
-        strategyId: 'self',
-        strategyTitle: '任性玩',
-        description: `自选 ${newMaterials.length} 种材料`,
-        materials: newMaterials.map(m => m.name)
-      });
-      return newMaterials;
-    });
-  };
-
-  const getSelfWillCounterColor = (count: number) => {
-    if (count > 5) return 'text-red-500 bg-red-50';
-    if (count === 5) return 'text-orange-500 bg-orange-50';
-    return 'text-gray-400 bg-gray-100';
-  };
-
-  const handleConsultationClick = () => {
-    setConsultationMode(true);
-    toggleModal(true);
+  // Helper to get image lightbox
+  const openLightbox = (src: string) => {
+     setLightboxSrc(src);
   };
 
   return (
-    <section id="process" className="py-24 bg-white relative overflow-hidden">
-      {lightboxSrc && <ProcessLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
-
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-800 mb-3">
-            {sectionTitle}
-            <span className="text-primary-400 font-light ml-2 text-2xl">{sectionSubtitle}</span>
-          </h2>
-          <p className="text-gray-500">{intro}</p>
+    <section id="process" className="py-24 bg-white relative min-h-screen">
+       {lightboxSrc && <ProcessLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+       
+       {showDiyNotice && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 animate-fade-in-down">
+          <Sparkles className="w-5 h-5 text-yellow-300" />
+          <span className="text-sm font-bold">{WISH_MODAL_CONTENT.diyNotice}</span>
         </div>
+       )}
 
-        {/* CONSULTATION MODE TRIGGER */}
-        <div className="max-w-xl mx-auto mb-10">
-          <button 
-            onClick={handleConsultationClick}
-            className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all duration-300 border border-dashed ${consultationMode ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-100' : 'bg-white border-gray-300 hover:border-indigo-300 hover:bg-indigo-50/50'}`}
-          >
-             <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-500 shrink-0">
-               <HelpCircle className="w-6 h-6" />
-             </div>
-             <div className="text-left flex-1">
-               <h3 className="font-bold text-gray-800">{CONSULTATION_CONTENT.title}</h3>
-               <p className="text-xs text-gray-500">{CONSULTATION_CONTENT.desc}</p>
-             </div>
-             <div className="text-indigo-500 font-medium text-sm">
-               {consultationMode ? '已激活' : '点击咨询'} &rarr;
-             </div>
-          </button>
-        </div>
+       <div className="container mx-auto px-4 md:px-6 relative z-10">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-gray-800 mb-3">{content.sectionTitle}<span className="text-primary-400 font-light ml-2 text-2xl">{content.sectionSubtitle}</span></h2>
+            <p className="text-gray-500">{content.intro}</p>
+          </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap justify-center gap-4 mb-12">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id as any); setOpenAccordionId(null); }}
-              className={`flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all duration-300 ${
-                activeTab === tab.id
-                  ? 'bg-primary-500 text-white shadow-lg shadow-primary-200 scale-105'
-                  : 'bg-gray-50 text-gray-600 hover:bg-primary-50 hover:text-primary-500'
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
+          <div className="max-w-xl mx-auto mb-10">
+            <button onClick={() => { setConsultationMode(true); toggleModal(true); }} className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all duration-300 border border-dashed ${consultationMode ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-100' : 'bg-white border-gray-300 hover:border-indigo-300 hover:bg-indigo-50/50'}`}>
+                <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-500 shrink-0"><HelpCircle className="w-6 h-6" /></div>
+                <div className="text-left flex-1">
+                <h3 className="font-bold text-gray-800">{CONSULTATION_CONTENT.title}</h3>
+                <p className="text-xs text-gray-500">{CONSULTATION_CONTENT.desc}</p>
+                </div>
+                <div className="text-indigo-500 font-medium text-sm">{consultationMode ? '已激活' : '点击咨询'} &rarr;</div>
             </button>
-          ))}
-        </div>
+          </div>
 
-        {/* Content Area */}
-        <div className="min-h-[400px] mb-20">
-          
-          {/* TAB 1: SIZES (Refactored to Accordion) */}
-          {activeTab === 'base' && (
-            <div className="animate-fade-in space-y-6 max-w-2xl mx-auto">
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">画框：世界的基石</h3>
-                <p className="text-gray-600 text-sm">点击条目选中，点击箭头展开查看比例参考。</p>
-              </div>
+          {/* --- STACKED CARD INTERFACE --- */}
+          <div className="max-w-2xl mx-auto space-y-4 pb-20">
+             {steps.map((step, index) => {
+               const isActive = index === currentStepIndex;
+               const isPast = index < currentStepIndex;
+               const isFuture = index > currentStepIndex;
+               
+               if (isFuture) return null;
 
-              <div>
-                {sizes.map((item, idx) => (
-                  <AccordionItem 
-                    key={idx}
-                    id={`size-${idx}`}
-                    isSelected={selectedSize?.name === item.name}
-                    isOpen={openAccordionId === `size-${idx}`}
-                    onToggle={() => handleAccordionToggle(`size-${idx}`)}
-                    onSelect={() => handleSizeClick(item)}
-                    title={item.name}
-                    subtitle={item.desc}
-                    image={item.image}
-                    priceTag={item.price}
-                    isWishTrigger={item.triggerWish}
-                  />
-                ))}
-              </div>
-              <p className="text-center text-xs text-gray-400 mt-4">{sizeNote}</p>
-            </div>
-          )}
+               return (
+                 <div 
+                    key={step.id} 
+                    ref={el => { stepRefs.current[index] = el }}
+                    className={`transition-all duration-500 ease-in-out ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-0'}`}
+                 >
+                    {/* Header / Summary State */}
+                    {isPast && (
+                       <button 
+                         onClick={() => handleStepClick(index)}
+                         className="w-full bg-white border border-gray-200 shadow-sm rounded-xl p-4 flex items-center justify-between hover:bg-gray-50 transition-colors group"
+                       >
+                          <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+                                <Check className="w-4 h-4" />
+                             </div>
+                             <div className="text-left">
+                                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide">{step.title}</div>
+                                <div className="font-bold text-gray-800 text-sm">{step.summary}</div>
+                             </div>
+                          </div>
+                          <div className="text-gray-400 group-hover:text-primary-500 text-xs font-medium">修改</div>
+                       </button>
+                    )}
 
-          {/* TAB 2: FLUIDS (INTERACTIVE REFACTOR) */}
-          {activeTab === 'fluid' && (
-            <div className="animate-fade-in space-y-6 max-w-3xl mx-auto">
-               <div className="text-center mb-6">
-                 <h3 className="text-2xl font-bold text-gray-800 mb-2">配方：魔法的灵魂</h3>
-                 <p className="text-gray-600 text-sm">选择一种调配方式，开启你的定制之旅。</p>
-               </div>
+                    {/* Active State */}
+                    {isActive && (
+                       <div className="bg-white rounded-2xl shadow-xl border border-primary-100 overflow-hidden animate-slide-up">
+                          <div className="bg-primary-50/50 p-4 border-b border-primary-100 flex items-center gap-2">
+                             <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center font-bold">
+                                {index + 1}
+                             </div>
+                             <h3 className="font-bold text-gray-800">{step.title.split('.')[1] || step.title}</h3>
+                          </div>
+                          
+                          <div className="p-6">
+                             {/* --- STEP 1: SIZE --- */}
+                             {step.id === 'size' && (
+                                <div className="space-y-4">
+                                   <div className="grid gap-3">
+                                      {content.sizes.map((item, idx) => (
+                                         <button 
+                                            key={idx}
+                                            onClick={() => handleSizeSelect(item)}
+                                            className={`relative flex items-center p-3 rounded-xl border-2 text-left transition-all hover:shadow-md ${selectedSize?.name === item.name ? 'border-primary-500 bg-primary-50' : 'border-gray-100 hover:border-primary-200'}`}
+                                         >
+                                            <div className="w-20 h-20 bg-gray-100 rounded-lg shrink-0 overflow-hidden mr-4 relative group">
+                                               {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xs text-gray-300">无图</div>}
+                                               <div onClick={(e) => {e.stopPropagation(); openLightbox(item.image)}} className="absolute bottom-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><ZoomIn className="w-3 h-3"/></div>
+                                            </div>
+                                            <div className="flex-1">
+                                               <div className="flex justify-between items-center mb-1">
+                                                  <span className="font-bold text-gray-800">{item.name}</span>
+                                                  <span className="font-bold text-primary-600">{item.price}</span>
+                                               </div>
+                                               <div className="text-xs text-gray-500 mb-2">{item.desc}</div>
+                                               <div className="inline-flex gap-2">
+                                                  <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-500">{item.size}</span>
+                                                  {item.triggerWish && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded flex items-center gap-1"><Star className="w-3 h-3 fill-current"/> 含福利</span>}
+                                               </div>
+                                            </div>
+                                            {selectedSize?.name === item.name && <div className="absolute top-3 right-3 text-primary-500"><Check className="w-5 h-5"/></div>}
+                                         </button>
+                                      ))}
+                                   </div>
+                                   <p className="text-xs text-center text-gray-400">{content.sizeNote}</p>
+                                </div>
+                             )}
 
-               {/* Strategy 1: Buddha Selection */}
-               <div 
-                  className={`bg-white border rounded-2xl p-6 transition-all duration-300 shadow-sm
-                    ${selectedFluid?.strategyId === 'buddha' ? 'border-primary-500 ring-1 ring-primary-200' : 'border-gray-200'}
-                  `}
-                  onClick={() => {
-                     // Always select Buddha if clicking main container
-                     if (selectedFluid?.strategyId !== 'buddha') {
-                        selectFluid({ strategyId: 'buddha', strategyTitle: '佛系选', description: '由小狼调配', note: buddhaInput });
-                     }
-                  }}
-               >
-                  <div className="flex items-center gap-3 mb-4">
-                     <div className="text-3xl">{fluids.strategies[0].icon}</div>
-                     <div>
-                        <h4 className="font-bold text-gray-800">{fluids.strategies[0].title}</h4>
-                        <p className="text-xs text-gray-500">{fluids.strategies[0].desc}</p>
-                     </div>
-                     {selectedFluid?.strategyId === 'buddha' && <Check className="w-5 h-5 text-primary-500 ml-auto" />}
-                  </div>
+                             {/* --- STEP 2: FLUID --- */}
+                             {step.id === 'fluid' && (
+                                <div className="space-y-4">
+                                   {/* Buddha */}
+                                   <div 
+                                      onClick={() => {if (selectedFluid?.strategyId !== 'buddha') handleFluidSelect({ strategyId: 'buddha', strategyTitle: '佛系选', description: '由小狼调配', note: buddhaInput })}}
+                                      className={`border rounded-xl p-4 transition-all cursor-pointer ${selectedFluid?.strategyId === 'buddha' ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-200' : 'border-gray-200 hover:border-gray-300'}`}
+                                   >
+                                      <div className="flex items-center gap-3 mb-3">
+                                         <span className="text-2xl">🧘</span>
+                                         <div>
+                                            <div className="font-bold text-gray-800">佛系选 (推荐)</div>
+                                            <div className="text-xs text-gray-500">给关键词，剩下的交给我。</div>
+                                         </div>
+                                         {selectedFluid?.strategyId === 'buddha' && <Check className="w-5 h-5 text-primary-500 ml-auto" />}
+                                      </div>
+                                      <input 
+                                         type="text" 
+                                         value={buddhaInput} 
+                                         onClick={(e) => e.stopPropagation()}
+                                         onChange={(e) => { setBuddhaInput(e.target.value); if(selectedFluid?.strategyId === 'buddha') handleFluidSelect({ strategyId: 'buddha', strategyTitle: '佛系选', description: '由小狼调配', note: e.target.value }) }}
+                                         placeholder="例如：想要蓝紫色系，梦幻一点..." 
+                                         className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-primary-200 focus:border-primary-400"
+                                      />
+                                   </div>
 
-                  {/* Input Field */}
-                  <div className="relative group">
-                    <input 
-                      type="text"
-                      value={buddhaInput}
-                      onChange={handleBuddhaInput}
-                      placeholder="例：蓝紫银，想要夜空流星划过的感觉..."
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-300 focus:scale-[1.02] transition-transform duration-300 placeholder-gray-400"
-                    />
-                    <div className="absolute right-3 top-3 text-gray-300 pointer-events-none group-focus-within:hidden">
-                       <Palette className="w-4 h-4" />
-                    </div>
-                  </div>
-               </div>
+                                   {/* Surprise */}
+                                   <div 
+                                      onClick={() => {
+                                         setIsSurpriseAnimating(true);
+                                         setTimeout(() => {
+                                            setIsSurpriseAnimating(false);
+                                            setIsSurpriseDone(true);
+                                            handleFluidSelect({ strategyId: 'surprise', strategyTitle: '开惊喜', description: '小狼的即兴创作' });
+                                         }, 1500);
+                                      }}
+                                      className={`border rounded-xl p-4 cursor-pointer relative overflow-hidden transition-all h-24 flex items-center ${selectedFluid?.strategyId === 'surprise' ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
+                                   >
+                                       {isSurpriseAnimating ? (
+                                          <div className="absolute inset-0 flex items-center justify-center bg-red-50">
+                                             <Heart className="w-10 h-10 text-red-500 animate-ping" fill="currentColor" />
+                                          </div>
+                                       ) : (
+                                          <div className="flex items-center gap-3 w-full">
+                                             <span className="text-2xl">🎁</span>
+                                             <div>
+                                                <div className="font-bold text-gray-800">开惊喜 (盲盒)</div>
+                                                <div className="text-xs text-gray-500">完全信任小狼，或许有绝版限定掉落。</div>
+                                             </div>
+                                             {selectedFluid?.strategyId === 'surprise' && <Check className="w-5 h-5 text-red-500 ml-auto" />}
+                                          </div>
+                                       )}
+                                   </div>
 
-               {/* Strategy 2: Surprise (Blind Box) - Refactored for Full Animation/Toggle */}
-               <div 
-                   onClick={handleSurpriseClick}
-                   className={`
-                     relative bg-white border rounded-2xl p-6 cursor-pointer transition-all duration-500 overflow-hidden shadow-sm h-28 flex items-center justify-center
-                     ${(isSurpriseDone || selectedFluid?.strategyId === 'surprise') 
-                         ? 'border-red-400 shadow-xl bg-red-50' 
-                         : 'hover:border-primary-200 border-gray-200 hover:bg-gray-50'}
-                   `}
-               >
-                   {/* CONTENT */}
-                   {(isSurpriseDone || isSurpriseAnimating || selectedFluid?.strategyId === 'surprise') ? (
-                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center animate-fade-in w-full h-full">
-                         {/* Giant pulsating heart background/foreground */}
-                         <Heart className="w-32 h-32 text-red-500/20 absolute animate-pulse" fill="currentColor" />
-                         <Heart className="w-16 h-16 text-red-500 fill-red-500 animate-bounce relative z-20 mb-2" />
-                         <h4 className="text-lg font-bold text-red-600 relative z-20">感谢你的全然信任</h4>
-                         {/* Checkmark indicator */}
-                         <div className="absolute top-4 right-4 bg-white rounded-full p-1 shadow-sm z-20">
-                            <Check className="w-4 h-4 text-red-500" />
-                         </div>
-                      </div>
-                   ) : (
-                      // Default View
-                      <div className="flex items-center gap-3 w-full justify-start">
-                         <div className="text-3xl">{fluids.strategies[2].icon}</div>
-                         <div className="text-left">
-                            <h4 className="font-bold text-gray-800">{fluids.strategies[2].title}</h4>
-                            <p className="text-xs text-gray-500">{fluids.strategies[2].desc}</p>
-                         </div>
-                      </div>
-                   )}
-               </div>
+                                   {/* Self-Will */}
+                                   <div className={`border rounded-xl p-4 transition-all ${selectedFluid?.strategyId === 'self' ? 'border-primary-500 bg-white ring-1 ring-primary-200' : 'border-gray-200'}`}>
+                                      <div 
+                                         className="flex items-center gap-3 mb-4 cursor-pointer"
+                                         onClick={() => handleFluidSelect({ strategyId: 'self', strategyTitle: '任性玩', description: '自选材料', materials: customMaterials.map(m => m.name) })}
+                                      >
+                                         <span className="text-2xl">🎮</span>
+                                         <div>
+                                            <div className="font-bold text-gray-800">任性玩 (高玩)</div>
+                                            <div className="text-xs text-gray-500">自己指定配方，最多选5种。</div>
+                                         </div>
+                                         {selectedFluid?.strategyId === 'self' && <Check className="w-5 h-5 text-primary-500 ml-auto" />}
+                                      </div>
+                                      
+                                      {/* Material Selection UI */}
+                                      <div className="bg-gray-50 rounded-lg p-3">
+                                         <div className="flex gap-2 mb-3 overflow-x-auto pb-2 no-scrollbar">
+                                            {[0, 1, 2, 3, 4].map(i => (
+                                               <div key={i} className="w-8 h-8 rounded-full border border-dashed border-gray-300 bg-white flex items-center justify-center shrink-0 overflow-hidden">
+                                                  {customMaterials[i] ? <img src={customMaterials[i].img} className="w-full h-full object-cover"/> : <span className="text-gray-300 text-xs">{i+1}</span>}
+                                               </div>
+                                            ))}
+                                            <div className="text-xs text-gray-400 flex items-center">已选: {customMaterials.length}/5</div>
+                                         </div>
+                                         
+                                         {/* Categories Accordion */}
+                                         <div className="space-y-2">
+                                            {Object.entries(SELF_WILL_MATERIALS).map(([key, mats]) => (
+                                               <div key={key}>
+                                                  <button 
+                                                     onClick={() => setExpandFluidCategory(expandFluidCategory === key ? null : key)}
+                                                     className="flex items-center gap-2 text-xs font-bold text-gray-600 w-full hover:bg-gray-100 p-1 rounded"
+                                                  >
+                                                     <ChevronDown className={`w-3 h-3 transition-transform ${expandFluidCategory === key ? 'rotate-180' : ''}`} />
+                                                     {key === 'base' ? '基础色粉' : key === 'pearl' ? '珠光粉' : key === 'glitter' ? '亮片' : '特殊填充'}
+                                                  </button>
+                                                  {expandFluidCategory === key && (
+                                                     <div className="grid grid-cols-4 gap-2 mt-2">
+                                                        {mats.map(m => {
+                                                           const isSelected = customMaterials.some(cm => cm.id === m.id);
+                                                           return (
+                                                              <div 
+                                                                 key={m.id} 
+                                                                 onClick={() => {
+                                                                    setCustomMaterials(prev => {
+                                                                       const exists = prev.find(p => p.id === m.id);
+                                                                       const next = exists ? prev.filter(p => p.id !== m.id) : (prev.length < 5 ? [...prev, m] : prev);
+                                                                       if (selectedFluid?.strategyId === 'self') selectFluid({ strategyId: 'self', strategyTitle: '任性玩', description: '自选材料', materials: next.map(x => x.name) });
+                                                                       return next;
+                                                                    });
+                                                                 }}
+                                                                 className={`aspect-square rounded border relative overflow-hidden cursor-pointer ${isSelected ? 'border-primary-500 ring-2 ring-primary-100' : 'border-gray-200'}`}
+                                                              >
+                                                                 <img src={m.img} className="w-full h-full object-cover" />
+                                                                 {isSelected && <div className="absolute inset-0 bg-primary-500/20 flex items-center justify-center"><Check className="w-5 h-5 text-white shadow" /></div>}
+                                                              </div>
+                                                           )
+                                                        })}
+                                                     </div>
+                                                  )}
+                                               </div>
+                                            ))}
+                                         </div>
+                                      </div>
+                                      <div className="mt-4 text-center">
+                                         <button onClick={advanceStep} className="bg-primary-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow hover:bg-primary-600 transition-colors">确认配方</button>
+                                      </div>
+                                   </div>
+                                </div>
+                             )}
 
-               {/* Strategy 3: Self-Will (Custom) */}
-               <div 
-                 className={`
-                   bg-white border rounded-2xl p-6 transition-all duration-300 shadow-sm relative
-                   ${selectedFluid?.strategyId === 'self' ? 'border-primary-500 ring-1 ring-primary-200' : 'border-gray-200'}
-                 `}
-               >
-                  <div className="flex items-center gap-3 mb-6 cursor-pointer" onClick={() => selectFluid({ strategyId: 'self', strategyTitle: '任性玩', description: '自选材料', materials: customMaterials.map(m => m.name) })}>
-                     <div className="text-3xl">{fluids.strategies[1].icon}</div>
-                     <div>
-                        <h4 className="font-bold text-gray-800">{fluids.strategies[1].title}</h4>
-                        <p className="text-xs text-gray-500">{fluids.strategies[1].desc}</p>
-                     </div>
-                     {selectedFluid?.strategyId === 'self' && <Check className="w-5 h-5 text-primary-500 ml-auto" />}
-                  </div>
+                             {/* --- STEP 3: DECORATION MODE (FORK) --- */}
+                             {step.id === 'mode' && (
+                                <div className="grid md:grid-cols-2 gap-4">
+                                   <button 
+                                      onClick={() => handleModeSelect('package')}
+                                      className={`p-5 rounded-2xl border-2 text-left transition-all hover:shadow-lg relative overflow-hidden ${decorationMode === 'package' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-primary-200'}`}
+                                   >
+                                      <div className="absolute top-0 right-0 bg-primary-500 text-white text-[10px] px-2 py-1 rounded-bl-lg">推荐</div>
+                                      <div className="text-3xl mb-3">{content.paths.a.icon}</div>
+                                      <h4 className="font-bold text-gray-800 text-lg mb-1">{content.paths.a.title}</h4>
+                                      <div className="text-primary-600 font-bold text-sm mb-2">{content.paths.a.subtitle}</div>
+                                      <p className="text-xs text-gray-500 leading-relaxed mb-4">{content.paths.a.desc}</p>
+                                      <div className="flex flex-wrap gap-2">
+                                         {content.paths.a.badges.map(b => <span key={b} className="text-[10px] bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-500">{b}</span>)}
+                                      </div>
+                                   </button>
 
-                  {/* Slot Display */}
-                  <div className="bg-gray-50 rounded-xl p-4 mb-4">
-                     <div className="flex justify-between items-center mb-3">
-                       <span className="text-xs font-bold text-gray-400">配方槽</span>
-                       <span className={`text-xs font-bold px-2 py-0.5 rounded ${getSelfWillCounterColor(customMaterials.length)}`}>
-                         {customMaterials.length}/5
-                         {customMaterials.length > 5 && <AlertTriangle className="w-3 h-3 inline ml-1" />}
-                       </span>
-                     </div>
-                     <div className="flex justify-center gap-3 mb-2">
-                        {[0,1,2,3,4].map(i => (
-                          <div 
-                            key={i} 
-                            className={`
-                              w-10 h-10 rounded-full border-2 flex items-center justify-center text-[10px] overflow-hidden bg-white
-                              ${customMaterials[i] ? 'border-primary-400' : 'border-gray-200 border-dashed'}
-                            `}
-                          >
-                             {customMaterials[i] ? (
-                               <img src={customMaterials[i].img} className="w-full h-full object-cover" />
-                             ) : (
-                               <span className="text-gray-300">{i+1}</span>
+                                   <button 
+                                      onClick={() => handleModeSelect('custom')}
+                                      className={`p-5 rounded-2xl border-2 text-left transition-all hover:shadow-lg relative ${decorationMode === 'custom' ? 'border-gray-800 bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}
+                                   >
+                                      <div className="text-3xl mb-3">{content.paths.b.icon}</div>
+                                      <h4 className="font-bold text-gray-800 text-lg mb-1">{content.paths.b.title}</h4>
+                                      <div className="text-gray-600 font-bold text-sm mb-2">{content.paths.b.subtitle}</div>
+                                      <p className="text-xs text-gray-500 leading-relaxed mb-4">{content.paths.b.desc}</p>
+                                      <div className="flex flex-wrap gap-2">
+                                         {content.paths.b.badges.map(b => <span key={b} className="text-[10px] bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-500">{b}</span>)}
+                                      </div>
+                                   </button>
+                                </div>
+                             )}
+
+                             {/* --- PATH A: PACKAGE SELECTION --- */}
+                             {step.id === 'package' && (
+                                <div className="space-y-4">
+                                   {content.packages.map((pkg) => (
+                                      <button 
+                                         key={pkg.id}
+                                         onClick={() => { selectDecorationPackage(pkg as any); }}
+                                         className={`w-full text-left p-4 rounded-xl border-2 transition-all ${selectedDecorationPackage?.id === pkg.id ? 'border-primary-500 bg-primary-50 shadow-md' : 'border-gray-200 hover:border-gray-300'}`}
+                                      >
+                                         <div className="flex justify-between items-center mb-2">
+                                            <h4 className="font-bold text-gray-800">{pkg.name}</h4>
+                                            <div className="font-bold text-primary-600">+{pkg.price}r</div>
+                                         </div>
+                                         <p className="text-xs text-gray-500 mb-3">{pkg.desc}</p>
+                                         <div className="flex flex-wrap gap-2">
+                                            {pkg.features.map((f, i) => (
+                                               <span key={i} className="text-[10px] bg-white px-2 py-1 rounded border border-gray-100 text-gray-400 flex items-center gap-1">
+                                                  <Check className="w-3 h-3 text-primary-400" /> {f}
+                                               </span>
+                                            ))}
+                                         </div>
+                                      </button>
+                                   ))}
+                                   <div className="pt-4 border-t border-dashed border-gray-200 mt-4">
+                                      <p className="text-xs text-gray-400 text-center mb-4">
+                                         * 装饰方案为整体设计密度，不逐项选择材料。特殊结构设计将单独确认。
+                                      </p>
+                                   </div>
+                                </div>
+                             )}
+
+                             {/* --- PATH B: CUSTOM CATEGORIES (Structure / Enhancement / External) --- */}
+                             {(step.id === 'structure' || step.id === 'enhancement' || step.id === 'external') && (
+                                <div className="space-y-6">
+                                   <div className="text-sm text-gray-500 italic mb-4">
+                                      {step.id === 'structure' ? content.customCategories.structure.desc : 
+                                       step.id === 'enhancement' ? content.customCategories.enhancement.desc : 
+                                       content.customCategories.external.desc}
+                                   </div>
+
+                                   <div className="grid grid-cols-2 gap-3">
+                                      {(content.customCategories as any)[step.id].items.map((item: any, idx: number) => {
+                                         // Unified multi-select check
+                                         const isSelected = selectedAddons?.some(a => a.name === item.name) || false;
+                                            
+                                         return (
+                                            <div 
+                                               key={idx}
+                                               onClick={() => {
+                                                  // Map categories
+                                                  let category = 'External';
+                                                  if (step.id === 'structure') category = 'Structure';
+                                                  else if (step.id === 'enhancement') category = 'Visual Effect';
+                                                  else if (['巴洛克堆叠'].includes(item.name)) category = 'Baroque';
+                                                  else if (['立体拼贴'].includes(item.name)) category = 'Collage';
+                                                  
+                                                  // Toggle with multiplier support
+                                                  toggleAddon(category, item.name, item.price, item.priceNum, item.multiplier);
+                                               }}
+                                               className={`border rounded-xl p-3 cursor-pointer transition-all hover:shadow-md flex flex-col ${isSelected ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-200' : 'border-gray-200 bg-white'}`}
+                                            >
+                                               <div className="relative aspect-video bg-gray-100 rounded-lg mb-3 overflow-hidden group">
+                                                  {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">No Image</div>}
+                                                  {isSelected && <div className="absolute inset-0 bg-primary-500/20 flex items-center justify-center"><Check className="w-6 h-6 text-white" /></div>}
+                                                  <div onClick={(e) => {e.stopPropagation(); openLightbox(item.image)}} className="absolute bottom-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><ZoomIn className="w-3 h-3"/></div>
+                                               </div>
+                                               <div className="flex justify-between items-start mb-1">
+                                                  <h4 className="font-bold text-gray-800 text-sm leading-tight">{item.name}</h4>
+                                                  <span className="text-xs font-bold text-primary-600 shrink-0 ml-1">{item.price}</span>
+                                               </div>
+                                               <p className="text-[10px] text-gray-400 leading-tight">{item.desc}</p>
+                                            </div>
+                                         )
+                                      })}
+                                   </div>
+                                   
+                                   <div className="mt-6 flex justify-between items-center pt-4 border-t border-gray-100">
+                                      <button 
+                                         onClick={prevStep}
+                                         className="flex items-center gap-2 text-gray-500 text-sm hover:text-gray-800 transition-colors"
+                                      >
+                                         <ArrowLeft className="w-4 h-4"/> 上一步
+                                      </button>
+                                      
+                                      <button 
+                                         onClick={() => {
+                                             if (index === steps.length - 1) {
+                                                toggleModal(true); // Open Checkout on Finish
+                                             } else {
+                                                advanceStep();
+                                             }
+                                         }}
+                                         className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-colors shadow-md ${index === steps.length - 1 ? 'bg-primary-500 hover:bg-primary-600 text-white' : 'bg-gray-900 text-white hover:bg-black'}`}
+                                      >
+                                         {index === steps.length - 1 ? (
+                                             <>完成 <ShoppingCart className="w-4 h-4" /></>
+                                         ) : (
+                                             <>下一步 <ArrowRight className="w-4 h-4"/></>
+                                         )}
+                                      </button>
+                                   </div>
+                                </div>
                              )}
                           </div>
-                        ))}
-                     </div>
-                  </div>
-
-                  {/* Disclaimer */}
-                  <div className="bg-yellow-50 text-yellow-700 text-[10px] px-3 py-2 rounded-lg mb-4 flex items-start gap-2">
-                     <Info className="w-3 h-3 shrink-0 mt-0.5" />
-                     <span>* 温馨提示：本图仅为材料效果展示，并非最终定制布局。你的选择，将会被小狼融入你专属的设计中。</span>
-                  </div>
-                  
-                  {/* Warning for > 5 */}
-                  {customMaterials.length > 5 && (
-                    <div className="bg-orange-50 text-orange-600 text-[10px] px-3 py-2 rounded-lg mb-4 flex items-start gap-2 animate-fade-in">
-                       <HelpCircle className="w-3 h-3 shrink-0 mt-0.5" />
-                       <span>小狼的创作建议：材料超过五种，可能会让背景的美感被些许遮盖哦。但如果你胸有成竹，请尽管突破界限！</span>
-                    </div>
-                  )}
-
-                  {/* Material Picker */}
-                  <div className="space-y-4">
-                     {Object.entries(SELF_WILL_MATERIALS).map(([key, mats]) => {
-                       const titleMap: Record<string, string> = { base: "基础色粉", pearl: "珠光粉", glitter: "亮片", special: "特殊填充物" };
-                       return (
-                         <div key={key}>
-                            <button 
-                              className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-2 hover:text-gray-800"
-                              onClick={() => setExpandFluidCategory(expandFluidCategory === key ? null : key)}
-                            >
-                              {expandFluidCategory === key ? <ChevronDown className="w-3 h-3" /> : <span className="text-gray-300">▶</span>}
-                              [+] {titleMap[key]}
-                            </button>
-                            
-                            {expandFluidCategory === key && (
-                              <div className="grid grid-cols-4 gap-2 animate-fade-in">
-                                {mats.map(m => {
-                                  const isSelected = customMaterials.some(cm => cm.id === m.id);
-                                  return (
-                                    <div 
-                                      key={m.id} 
-                                      onClick={() => handleMaterialToggle(m)}
-                                      className={`
-                                        cursor-pointer rounded-lg overflow-hidden border relative aspect-square group
-                                        ${isSelected ? 'border-primary-500 ring-2 ring-primary-200' : 'border-gray-100 hover:border-gray-300'}
-                                      `}
-                                    >
-                                       <img src={m.img} alt={m.name} className="w-full h-full object-cover" />
-                                       <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[8px] p-1 truncate text-center">
-                                         {m.name.split(' ')[1]}
-                                       </div>
-                                       {isSelected && (
-                                         <div className="absolute inset-0 bg-primary-500/20 flex items-center justify-center">
-                                            <Check className="w-6 h-6 text-white drop-shadow-md" />
-                                         </div>
-                                       )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                         </div>
-                       );
-                     })}
-                  </div>
-                  
-                  {/* Selected List Text */}
-                  {customMaterials.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-100 text-xs">
-                       <span className="text-gray-400">已选材料：</span>
-                       <span className="text-gray-700 ml-1">
-                          {customMaterials.map(m => m.name.split(' ')[1]).join('、')}
-                       </span>
-                    </div>
-                  )}
-               </div>
-
-            </div>
-          )}
-
-          {/* TAB 3: DECOR (Mixed Layout: Accordion for large items) */}
-          {activeTab === 'decor' && (
-            <div className="animate-fade-in space-y-12 max-w-3xl mx-auto">
-               
-               {/* Visual Effects - Accordion */}
-               <div className="space-y-4">
-                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                   <Eye className="w-5 h-5 text-primary-500" /> 视觉特效 (可多选)
-                 </h3>
-                 <div>
-                    {decor.visualEffects.map((item, idx) => (
-                      <AccordionItem 
-                        key={idx}
-                        id={`effect-${idx}`}
-                        isSelected={isAddonSelected(item.name)}
-                        isOpen={openAccordionId === `effect-${idx}`}
-                        onToggle={() => handleAccordionToggle(`effect-${idx}`)}
-                        onSelect={() => handleAddonToggle('Visual Effect', item)}
-                        title={item.name}
-                        subtitle={item.desc}
-                        image={item.image}
-                        priceTag={item.price}
-                      />
-                    ))}
-                 </div>
-               </div>
-
-               {/* Collage - Grid */}
-               <div className="space-y-4">
-                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                   <Scissors className="w-5 h-5 text-primary-500" /> 氛围拼贴 (可多选)
-                 </h3>
-                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {decor.collage.map((item, idx) => {
-                      const selected = isAddonSelected(item.name);
-                      return (
-                        <div 
-                          key={idx} 
-                          onClick={() => handleAddonToggle('Collage', item)}
-                          className={`
-                            rounded-xl p-0 text-center cursor-pointer transition-all border overflow-hidden group
-                            ${selected 
-                              ? 'bg-primary-50 border-primary-400 shadow-sm transform -translate-y-1' 
-                              : 'bg-gray-50 border-transparent hover:border-gray-200'
-                            }
-                          `}
-                        >
-                           <div className="h-24 bg-gray-200 overflow-hidden relative mb-2">
-                              {item.image && <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />}
-                              {selected && (
-                                <div className="absolute inset-0 bg-primary-500/20 flex items-center justify-center">
-                                   <Check className="w-6 h-6 text-white" />
-                                </div>
-                              )}
-                           </div>
-                           <div className="px-3 pb-3">
-                              <h4 className="font-bold text-gray-800 text-sm mb-1">{item.name}</h4>
-                              <span className="block text-primary-500 font-bold text-xs mb-2">{item.price}</span>
-                              <p className="text-xs text-gray-500 scale-90 leading-tight">{item.desc}</p>
-                           </div>
-                        </div>
-                      );
-                    })}
-                 </div>
-               </div>
-
-               {/* Hidden Attributes - Accordion */}
-               <div className="space-y-4">
-                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                   <Moon className="w-5 h-5 text-primary-500" /> 魔法·隐藏属性 (可多选)
-                 </h3>
-                 <div>
-                    {decor.hidden.map((item, idx) => (
-                       <AccordionItem 
-                        key={idx}
-                        id={`hidden-${idx}`}
-                        isSelected={isAddonSelected(item.name)}
-                        isOpen={openAccordionId === `hidden-${idx}`}
-                        onToggle={() => handleAccordionToggle(`hidden-${idx}`)}
-                        onSelect={() => handleAddonToggle('Hidden', item)}
-                        title={
-                           <span className="flex items-center gap-2">
-                              {item.iconType === 'moon' ? <Zap className="w-4 h-4 text-yellow-500" /> : <Sun className="w-4 h-4 text-orange-500" />}
-                              {item.name}
-                           </span>
-                        }
-                        subtitle={item.desc}
-                        image={item.image}
-                        priceTag={item.price}
-                      />
-                    ))}
-                 </div>
-               </div>
-
-               {/* Magic Mirror */}
-               <div 
-                 onClick={() => handleAddonToggle('Special', decor.magicMirror)}
-                 className={`
-                   bg-gradient-to-r from-gray-100 to-gray-200 rounded-2xl p-6 border-2 shadow-inner relative overflow-hidden cursor-pointer transition-all group
-                   ${isAddonSelected(decor.magicMirror.title) ? 'border-primary-500 ring-2 ring-primary-200' : 'border-white hover:border-gray-300'}
-                 `}
-               >
-                  <div className="absolute top-0 right-0 bg-primary-500 text-white text-xs font-bold px-4 py-1 rounded-bl-xl shadow-md z-20">{decor.magicMirror.badge}</div>
-                  
-                  <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
-                    <div className="w-20 h-20 rounded-full bg-white shadow-xl flex items-center justify-center shrink-0 border-4 border-white">
-                       <Sparkles className="w-8 h-8 text-gray-400" />
-                    </div>
-                    <div className="flex-1 text-center md:text-left">
-                      <h3 className="text-xl font-bold text-gray-800 mb-2">{decor.magicMirror.title}</h3>
-                      <p className="text-sm text-gray-600 leading-relaxed mb-4 whitespace-pre-line">
-                        {decor.magicMirror.desc}
-                      </p>
-                      <div className="inline-flex items-center gap-2 bg-white/50 px-3 py-1 rounded-full text-xs font-medium text-gray-500">
-                         <span>{decor.magicMirror.tags[0]}</span>
-                         <span className="w-px h-3 bg-gray-400"></span>
-                         <span className="text-primary-600 font-bold">{decor.magicMirror.price}</span>
-                      </div>
-                    </div>
-                  </div>
-               </div>
-            </div>
-          )}
-
-          {/* TAB 4: ADVANCED (Accordion for Structures, Vertical List for Final Touch) */}
-          {activeTab === 'advanced' && (
-            <div className="animate-fade-in space-y-12 max-w-2xl mx-auto">
-               
-               <div className="space-y-4">
-                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                   <Hammer className="w-5 h-5 text-primary-500" /> 进阶结构 (单选)
-                 </h3>
-                 
-                 <div>
-                    {advanced.structures.map((item, idx) => (
-                      <AccordionItem 
-                        key={idx}
-                        id={`struct-${idx}`}
-                        isSelected={selectedCraft?.name === item.name}
-                        isOpen={openAccordionId === `struct-${idx}`}
-                        onToggle={() => handleAccordionToggle(`struct-${idx}`)}
-                        onSelect={() => selectCraft(item)}
-                        title={
-                           <span className="flex items-center gap-2">
-                              <span>{item.icon}</span> {item.name}
-                           </span>
-                        }
-                        subtitle={item.desc}
-                        image={item.image}
-                        priceTag={item.price}
-                      />
-                    ))}
-                 </div>
-               </div>
-
-               <div className="bg-primary-50/50 rounded-3xl p-6 border border-primary-100/50">
-                  <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                     <Gem className="w-5 h-5 text-primary-500" /> 终章点缀 (可多选)
-                  </h3>
-                  {/* Vertical List for Final Touches */}
-                  <div className="flex flex-col gap-3">
-                     {advanced.finalTouch.map((item, idx) => {
-                       const selected = isAddonSelected(item.name);
-                       return (
-                         <div 
-                            key={idx} 
-                            onClick={() => handleAddonToggle('Final Touch', item)}
-                            className={`
-                              p-3 rounded-xl shadow-sm flex items-center gap-4 cursor-pointer transition-all border group
-                              ${selected
-                                ? 'bg-white border-primary-500 ring-1 ring-primary-500'
-                                : 'bg-white border-transparent hover:border-gray-200'
-                              }
-                            `}
-                          >
-                            <div className="w-12 h-12 rounded-lg bg-gray-50 shrink-0 overflow-hidden border border-gray-100 relative">
-                               {item.image && <img src={item.image} alt={item.name} className="w-full h-full object-cover" />}
-                            </div>
-                            <div className="flex-1">
-                               <div className="flex justify-between items-center mb-1">
-                                  <div className="font-bold text-gray-700 text-sm">{item.name}</div>
-                                  <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded font-medium">{item.price}</span>
-                               </div>
-                            </div>
-                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selected ? 'bg-primary-500 border-primary-500 text-white' : 'border-gray-200'}`}>
-                               {selected && <Check className="w-3 h-3" />}
-                            </div>
-                         </div>
-                       );
-                     })}
-                  </div>
-               </div>
-            </div>
-          )}
-        </div>
-
-        {/* ... (Existing Fulfillment Section Code - Unchanged logic, just layout) ... */}
-        {/* ========================================================= */}
-        {/* FULFILLMENT / CONTRACT */}
-        {/* ========================================================= */}
-        <div className="border-t-2 border-dashed border-gray-100 pt-20">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-800 mb-3">
-              {FULFILLMENT_CONTENT.sectionTitle}
-              <span className="text-gray-400 font-light ml-2 text-xl block md:inline mt-2 md:mt-0">{FULFILLMENT_CONTENT.sectionSubtitle}</span>
-            </h2>
-          </div>
-
-          <div className="max-w-4xl mx-auto space-y-16">
-            
-            {/* 1. Production Time & Rush Orders */}
-            <div>
-              <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8">
-                 <h3 className="text-xl font-bold text-gray-800 mb-4">{FULFILLMENT_CONTENT.production.title}</h3>
-                 <p className="text-gray-600 mb-4 leading-relaxed">{FULFILLMENT_CONTENT.production.cycle}</p>
-                 <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium">
-                   {FULFILLMENT_CONTENT.production.cancellation}
-                 </div>
-              </div>
-
-              <div className={`rounded-3xl p-8 transition-colors duration-300 ${isBusy ? 'bg-gray-50' : 'bg-gradient-to-br from-indigo-50 to-purple-50'}`}>
-                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-800 mb-1">{FULFILLMENT_CONTENT.rush.title}</h3>
-                      <p className="text-gray-500 text-sm">{FULFILLMENT_CONTENT.rush.subtitle}</p>
-                    </div>
-                    {isBusy && (
-                      <span className="bg-gray-200 text-gray-500 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 self-start md:self-auto">
-                        <Coffee className="w-3 h-3" /> 爆肝模式生效中
-                      </span>
+                       </div>
                     )}
                  </div>
-                 
-                 <p className="text-gray-600 mb-4">{FULFILLMENT_CONTENT.rush.intro}</p>
-                 <div className="text-xs text-gray-500 mb-8 bg-white/50 inline-block px-3 py-2 rounded-lg border border-black/5">
-                   {FULFILLMENT_CONTENT.rush.warning}
-                 </div>
+               );
+             })}
 
-                 {/* Rush Tiers Grid */}
-                 <div className={`grid md:grid-cols-3 gap-4 mb-8 ${isBusy ? 'opacity-70 grayscale-[0.5]' : ''}`}>
-                   {FULFILLMENT_CONTENT.rush.tiers.map((tier, idx) => {
-                     const isSelected = selectedRush?.name === tier.name;
-                     return (
-                       <div 
-                         key={idx} 
-                         onClick={() => !isBusy && selectRush(tier)} // Disable click if busy
-                         className={`
-                           border rounded-2xl p-5 relative overflow-hidden bg-white transition-all
-                           ${isBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:shadow-md'}
-                           ${isSelected ? `ring-2 ring-offset-2 ring-primary-400 border-primary-400 ${getRushColor(tier.color)}` : getRushColor(tier.color)}
-                         `}
-                       >
-                          {isSelected && <div className="absolute top-2 right-2 bg-primary-500 text-white rounded-full p-0.5"><Check className="w-3 h-3" /></div>}
-                          <div className="flex justify-between items-start mb-3">
-                             <span className="text-2xl">{tier.icon}</span>
-                             <span className="text-xl font-bold">{tier.fee}</span>
-                          </div>
-                          <h4 className="font-bold text-gray-800 mb-1">{tier.name}</h4>
-                          <div className="text-xs font-bold bg-white/50 inline-block px-2 py-1 rounded mb-3">
-                            ⏱️ {tier.time}
-                          </div>
-                          <p className="text-xs text-gray-500 leading-snug">
-                            {tier.desc}
-                          </p>
-                       </div>
-                     );
-                   })}
-                 </div>
-
-                 {/* Dynamic Status Info */}
-                 <div className="bg-white rounded-xl p-6 border border-gray-100">
-                    <h5 className="font-bold text-gray-800 text-sm mb-4">当前状态说明：</h5>
-                    <div className="space-y-3 text-sm">
-                      <div className={`flex gap-2 ${!isBusy ? 'text-gray-800 font-medium' : 'text-gray-400'}`}>
-                         <span className={!isBusy ? 'opacity-100' : 'opacity-50'}>🍵</span>
-                         <span>{FULFILLMENT_CONTENT.rush.status.idle}</span>
-                      </div>
-                      <div className={`flex gap-2 ${isBusy ? 'text-red-600 font-bold' : 'text-gray-400'}`}>
-                         <span className={isBusy ? 'animate-pulse' : 'opacity-50'}>🔥</span>
-                         <span>{FULFILLMENT_CONTENT.rush.status.busy}</span>
-                      </div>
-                    </div>
-                 </div>
-              </div>
-            </div>
-
-            {/* 2. Shipping Process */}
-            <div className="relative">
-              <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-0.5 bg-gray-200 -z-10 hidden md:block"></div>
-              <div className="space-y-8 md:space-y-0 md:grid md:grid-cols-2 md:gap-16">
-                
-                {/* Step 1 */}
-                <div className="flex flex-col md:items-end md:text-right">
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 md:mr-8 relative">
-                     <div className="absolute top-6 -right-3 w-6 h-6 bg-white rotate-45 border-t border-r border-gray-100 hidden md:block"></div>
-                     <div className="flex items-center gap-3 md:flex-row-reverse mb-2 text-primary-500 font-bold">
-                       <Camera className="w-5 h-5" />
-                       {FULFILLMENT_CONTENT.shipping.confirm.title}
-                     </div>
-                     <p className="text-gray-600 text-sm">{FULFILLMENT_CONTENT.shipping.confirm.desc}</p>
-                  </div>
-                  {/* Timeline dot */}
-                  <div className="hidden md:block absolute left-1/2 -translate-x-1/2 w-4 h-4 bg-primary-500 rounded-full border-4 border-white shadow-sm mt-8"></div>
+             {/* Completion / Next Actions (Fulfillment & Rush) */}
+             <div className="border-t-2 border-dashed border-gray-100 pt-10 mt-10">
+                <div className="text-center mb-8">
+                   <h2 className="text-2xl font-bold text-gray-800">契约履行</h2>
+                   <p className="text-gray-400 text-sm">Fulfillment & Delivery</p>
                 </div>
-
-                {/* Step 2 */}
-                <div className="flex flex-col md:items-start md:text-left mt-8 md:mt-24">
-                   {/* Timeline dot */}
-                   <div className="hidden md:block absolute left-1/2 -translate-x-1/2 w-4 h-4 bg-gray-300 rounded-full border-4 border-white shadow-sm mt-8"></div>
-                   
-                   <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 md:ml-8 relative">
-                     <div className="absolute top-6 -left-3 w-6 h-6 bg-white -rotate-45 border-t border-l border-gray-100 hidden md:block"></div>
-                     <div className="flex items-center gap-3 mb-2 text-gray-800 font-bold">
-                       <Truck className="w-5 h-5" />
-                       {FULFILLMENT_CONTENT.shipping.send.title}
-                     </div>
-                     <p className="text-gray-600 text-sm">{FULFILLMENT_CONTENT.shipping.send.desc}</p>
+                
+                {/* Rush Option */}
+                <div className={`rounded-2xl p-6 transition-all duration-500 mb-6 border ${isRushEnabled ? 'bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100' : 'bg-white border-gray-200'}`}>
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                         <span className={`text-2xl transition-transform ${isRushEnabled ? 'scale-125' : ''}`}>🚀</span>
+                         <div>
+                            <h3 className="font-bold text-gray-800">魔法加速 (加急)</h3>
+                            <p className="text-xs text-gray-500">当心意迫不及待...</p>
+                         </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                         <input type="checkbox" checked={isRushEnabled} onChange={(e) => { setIsRushEnabled(e.target.checked); if(!e.target.checked) selectRush(null); }} className="sr-only peer" disabled={isBusy} />
+                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                      </label>
                    </div>
-                </div>
-
-              </div>
-            </div>
-
-            {/* 3. Packaging Options */}
-            <div className="grid md:grid-cols-2 gap-8">
-               {FULFILLMENT_CONTENT.packaging.map((pack, idx) => {
-                 const isSelected = selectedPackaging?.title === pack.title || (!selectedPackaging && idx === 0);
-                 return (
-                 <div 
-                   key={idx} 
-                   onClick={() => selectPackaging(pack)}
-                   className={`
-                     bg-white rounded-3xl overflow-hidden shadow-md group hover:shadow-xl transition-all border cursor-pointer flex flex-col
-                     ${isSelected ? 'ring-2 ring-primary-500 scale-[1.02] border-primary-500' : 'border-gray-100 hover:border-gray-200'}
-                   `}
-                 >
-                    <div className="h-48 overflow-hidden relative">
-                      <img src={pack.image} alt={pack.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                      <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold shadow-sm ${pack.isUpgrade ? 'bg-gray-900 text-white' : 'bg-white text-gray-500'}`}>
-                        {pack.tag}
+                   
+                   {isRushEnabled && (
+                      <div className="mt-6 grid grid-cols-3 gap-3 animate-fade-in">
+                         {FULFILLMENT_CONTENT.rush.tiers.map((tier, idx) => (
+                            <div 
+                               key={idx} 
+                               onClick={() => !isBusy && selectRush(tier)}
+                               className={`border rounded-xl p-3 text-center cursor-pointer transition-all ${selectedRush?.name === tier.name ? 'border-primary-500 bg-white ring-1 ring-primary-200' : 'border-gray-200 bg-white/50 hover:bg-white'}`}
+                            >
+                               <div className="text-xl mb-1">{tier.icon}</div>
+                               <div className="font-bold text-xs text-gray-800">{tier.name}</div>
+                               <div className="text-primary-600 font-bold text-xs">{tier.fee}</div>
+                            </div>
+                         ))}
                       </div>
-                      {isSelected && (
-                        <div className="absolute inset-0 bg-primary-900/10 flex items-center justify-center">
-                          <div className="bg-white text-primary-600 px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2">
-                            <Package className="w-4 h-4" /> 已选择
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-6 flex-1 flex flex-col">
-                      <h4 className="text-lg font-bold text-gray-800 mb-1">{pack.title}</h4>
-                      <p className="text-xs text-gray-400 font-mono mb-3">{pack.engName}</p>
-                      <p className="text-gray-500 text-sm leading-relaxed">{pack.desc}</p>
-                    </div>
-                 </div>
-               )})}
-            </div>
+                   )}
+                </div>
 
+                {/* Packaging Option */}
+                <div className="grid grid-cols-2 gap-4">
+                   {FULFILLMENT_CONTENT.packaging.map((pack, idx) => {
+                      const isSelected = selectedPackaging?.title === pack.title || (!selectedPackaging && idx === 0);
+                      return (
+                         <div 
+                            key={idx} 
+                            onClick={() => selectPackaging(pack)}
+                            className={`border rounded-xl p-4 cursor-pointer transition-all ${isSelected ? 'border-primary-500 bg-white ring-1 ring-primary-200 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                         >
+                            <div className="flex justify-between items-start mb-2">
+                               <Package className={`w-5 h-5 ${isSelected ? 'text-primary-500' : 'text-gray-400'}`} />
+                               <div className="text-xs font-bold bg-gray-100 px-2 py-0.5 rounded">{pack.tag}</div>
+                            </div>
+                            <h4 className="font-bold text-gray-800 text-sm mb-1">{pack.title}</h4>
+                            <p className="text-xs text-gray-400 line-clamp-2">{pack.desc}</p>
+                         </div>
+                      )
+                   })}
+                </div>
+             </div>
           </div>
-        </div>
+       </div>
 
-        {/* ✨ WISH MODAL */}
-        {showWishModal && (
+       {/* Blind Box Modal */}
+       {showWishModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowWishModal(false)}>
-            <div className="bg-white rounded-[2rem] max-w-sm w-full p-8 relative animate-scale-up" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowWishModal(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600">
-                 <X className="w-6 h-6" />
-              </button>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-yellow-100 text-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-spin-slow">
-                   <Star className="w-8 h-8 fill-current" />
+            <div className="bg-white rounded-[2rem] max-w-md w-full p-8 relative animate-scale-up" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowWishModal(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 z-20"><X className="w-6 h-6" /></button>
+              
+              {wishModalStep === 'options' && (
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-yellow-100 text-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-spin-slow"><Star className="w-8 h-8 fill-current" /></div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">{WISH_MODAL_CONTENT.title}</h3>
+                  <p className="text-gray-500 text-sm mb-6 leading-relaxed">{WISH_MODAL_CONTENT.intro}</p>
+                  <div className="space-y-3">
+                    <button onClick={() => setWishModalStep('blindbox')} className="w-full text-left p-4 rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all group">
+                      <h4 className="font-bold text-gray-800 text-base">{WISH_MODAL_CONTENT.options[0].title}</h4>
+                      <p className="text-xs text-gray-500">{WISH_MODAL_CONTENT.options[0].desc}</p>
+                    </button>
+                    <button onClick={() => { setShowDiyNotice(true); setShowWishModal(false); }} className="w-full text-left p-4 rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all group">
+                      <h4 className="font-bold text-gray-800 text-base">{WISH_MODAL_CONTENT.options[1].title}</h4>
+                      <p className="text-xs text-gray-500">{WISH_MODAL_CONTENT.options[1].desc}</p>
+                    </button>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">检测到小狼的馈赠！</h3>
-                <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-                  恭喜！你选择了“随身卡包级/萌趣挂件”，已触发免费的 <span className="text-primary-500 font-bold">星辰点缀</span> 福利！
-                </p>
-                
-                <div className="space-y-3">
-                  <button className="w-full bg-primary-500 text-white font-bold py-3 rounded-xl hover:bg-primary-600 transition-colors shadow-lg shadow-primary-200" onClick={() => {
-                     setConsultationMode(true);
-                     toggleModal(true);
-                     setShowWishModal(false);
-                  }}>
-                    开启许愿模式 (免费)
-                  </button>
-                  <button className="w-full bg-gray-50 text-gray-600 font-medium py-3 rounded-xl hover:bg-gray-100 transition-colors" onClick={() => setShowWishModal(false)}>
-                    我再看看别的
-                  </button>
+              )}
+
+              {wishModalStep === 'blindbox' && (
+                <div className="animate-fade-in">
+                  <h3 className="text-xl font-bold text-center text-gray-800 mb-6">{WISH_MODAL_CONTENT.blindboxForm.title}</h3>
+                  <div className="space-y-5">
+                    <div>
+                      <label className="text-sm font-bold text-gray-700 block mb-2">{WISH_MODAL_CONTENT.blindboxForm.style.label}</label>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {WISH_MODAL_CONTENT.blindboxForm.style.tags.map(tag => (
+                          <button key={tag} onClick={() => setBlindboxStyleTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])} className={`px-3 py-1 text-xs rounded-full border transition-colors ${blindboxStyleTags.includes(tag) ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}>{tag}</button>
+                        ))}
+                      </div>
+                      <input type="text" value={blindboxStyleInput} onChange={(e) => setBlindboxStyleInput(e.target.value)} placeholder={WISH_MODAL_CONTENT.blindboxForm.style.placeholder} className="w-full bg-gray-50 border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-primary-300 focus:border-primary-300" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-bold text-gray-700 block mb-2">{WISH_MODAL_CONTENT.blindboxForm.taboo.label} <span className="text-red-500">*</span></label>
+                      <input type="text" value={blindboxTabooInput} onChange={(e) => setBlindboxTabooInput(e.target.value)} placeholder={WISH_MODAL_CONTENT.blindboxForm.taboo.placeholder} className="w-full bg-gray-50 border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-primary-300 focus:border-primary-300" />
+                      {blindboxError && <p className="text-red-500 text-xs mt-1">{blindboxError}</p>}
+                    </div>
+                    <button 
+                       onClick={() => {
+                          if (!blindboxTabooInput.trim()) { setBlindboxError('必填'); return; }
+                          const note = `【盲盒】风格:${blindboxStyleTags.join(',')}${blindboxStyleInput}, 避雷:${blindboxTabooInput}`;
+                          selectFluid({ strategyId: 'blindbox', strategyTitle: '随心盲盒', description: note });
+                          setShowWishModal(false);
+                          setTimeout(advanceStep, 300);
+                       }} 
+                       className="w-full bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Send className="w-4 h-4" /> {WISH_MODAL_CONTENT.blindboxForm.button}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}
-      </div>
     </section>
   );
 };

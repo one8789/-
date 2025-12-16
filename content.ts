@@ -1,10 +1,24 @@
-import { Product, NavItem, ShowcaseItem } from './types';
+
+import { Product, NavItem, ShowcaseItem, DecorationPackage } from './types';
 
 // =================================================================
 // ⚙️ 工坊状态设置 (Site Status)
 // =================================================================
 export const SITE_STATUS = {
   isBusy: false, // true = 爆肝中(暂停加急/涨价), false = 营业中(可加急)
+  
+  // 手动控制工坊作息状态的开关
+  // 'auto'     : 自动根据时间检测 (默认)
+  // 'working'  : 强制设为 "营业中"
+  // 'sleeping' : 强制设为 "休眠模式"
+  // 'weekend'  : 强制设为 "周末慢活" (例如：法定节假日时可手动设为周末模式)
+  forceStatus: 'auto' as 'auto' | 'working' | 'sleeping' | 'weekend',
+};
+
+export const SITE_INFO = {
+  title: "小狼的手作工坊",
+  subtitle: "/ StarrySand",
+  logoText: "小狼的手作工坊",
 };
 
 export const CONTACT_INFO = {
@@ -78,7 +92,7 @@ export const CONSULTATION_CONTENT = {
   modal: {
     headline: "找到我，然后开启故事。",
     intro: [
-      "很高兴你选择了【深度定制】。这意味着你不仅想要一件商品，更想要一份独一无二的记忆。",
+      "很高兴你选择了【深度定制】。这意味着你不仅想要一件商品，更想要一份独一-的记忆。",
       "由于定制的特殊性，我们需要进行一对一的详细沟通。请添加我的私人微信，我们可以讨论："
     ],
     list: [
@@ -122,14 +136,14 @@ export const NAV_CONTENT: NavItem[] = [
 // =================================================================
 export const HERO_CONTENT = {
   welcomeTag: "Little Wolf's Studio",
-  titleStart: "小狼的",
-  titleHighlight: "手作工坊",
-  titleEnd: " / StarrySand",
-  description: "欢迎来到我的造物台。\n我话不多，把想说的都藏进画里。\n直到第一次把画封进流沙麻将里，看着光和色在指尖里流动，那种小小的灿烂让我确定——\n即使不善言辞，我也能用自己的方式，把美好留给世界。\n\n如果你愿意，我会把你的故事、你的心意、你的期待…\n都封存在这片流动的星光里。",
+  title: "小狼的手作工坊",
+  subtitle: "/ StarrySand",
+  slogan: "把你的故事，封存在这片流动的星光里",
+  story: "欢迎来到我的造物台。\n我话不多，把想说的都藏进画里。\n直到第一次把画封进流沙麻将里，看着光和色在指尖里流动，那种小小的灿烂让我确定——\n即使不善言辞，我也能用自己的方式，把美好留给世界。\n\n如果你愿意，我会把你的故事、你的心意、你的期待…\n都封存在这片流动的星光里。",
   buttons: [
-    { label: "作品档案", href: "#gallery", style: "dark" },
-    { label: "定制契约", href: "#process", style: "light" },
-    { label: "召唤工坊主", href: "#", action: "consult", style: "primary" }
+    { label: "👉 开始定制", href: "#process", style: "primary", main: true },
+    { label: "查看作品", href: "#gallery", style: "light" },
+    { label: "联系工坊主", href: "#", action: "consult", style: "light" }
   ],
   heroImage: "https://picsum.photos/800/600?random=1",
   showcaseCard: {
@@ -140,7 +154,7 @@ export const HERO_CONTENT = {
 };
 
 // =================================================================
-// 🎨 定制流程 (Process Section) - 价格和文案都在这里修改
+// 🎨 定制流程 (Process Section) - NEW STRUCTURE
 // =================================================================
 
 // Mock data for Self-Will Fluid Materials
@@ -169,85 +183,141 @@ export const SELF_WILL_MATERIALS = {
 };
 
 export const PROCESS_CONTENT = {
-  sectionTitle: "流沙定制指南",
-  sectionSubtitle: "/ Guide",
-  intro: "每一块流麻，都是一个可以握在手心的微缩景观。",
+  sectionTitle: "定制契约",
+  sectionSubtitle: "/ Contract",
+  intro: "一张张翻开你的专属契约，每一步都是一次缔结。",
   
-  // 1. 基础尺寸与价格
-  // REORDERED: Charm (35r) is now first
   sizes: [
-    { name: '萌趣挂件系', size: '< 8cm', price: '35r', priceNum: 35, isSmallSize: true, desc: '任意形状，随身携带', triggerWish: true, image: 'https://picsum.photos/seed/size35/400/300' },
-    { name: '随身卡包级', size: '8.5×5.5cm', price: '48r', priceNum: 48, isSmallSize: true, desc: '小巧玲珑，刚好放入卡包', triggerWish: true, image: 'https://picsum.photos/seed/size48/400/300' },
-    { name: '手机伴侣款', size: '7.5×13cm', price: '63r', priceNum: 63, isSmallSize: false, desc: '修长比例，适合竖构图', image: 'https://picsum.photos/seed/size63/400/300' },
+    { name: '手机伴侣款', size: '7.5×13cm', price: '63r', priceNum: 63, isSmallSize: false, desc: '修长比例，适合竖构图', image: 'https://picsum.photos/seed/size63/400/300', isRecommended: true },
     { name: '记忆珍藏版', size: '10×15cm', price: '73r', priceNum: 73, isSmallSize: false, desc: '标准相框大小，细节最丰富', image: 'https://picsum.photos/seed/size73/400/300' },
     { name: '艺术典藏级', size: '11×20cm', price: '83r', priceNum: 83, isSmallSize: false, desc: '巨幅画布，震撼视觉', image: 'https://picsum.photos/seed/size83/400/300' },
+    { name: '萌趣挂件系', size: '< 8cm', price: '35r', priceNum: 35, isSmallSize: true, desc: '任意形状，随身携带', triggerWish: true, image: 'https://picsum.photos/seed/size35/400/300' },
+    { name: '随身卡包级', size: '8.5×5.5cm', price: '48r', priceNum: 48, isSmallSize: true, desc: '小巧玲珑，刚好放入卡包', triggerWish: true, image: 'https://picsum.photos/seed/size48/400/300' },
   ],
   sizeNote: "* 最终价格会根据装饰的复杂程度有小幅浮动。小尺寸(随身/萌趣)享受装饰半价优惠。",
 
-  // 2. 流沙与配方 (Updated)
   fluids: {
     strategies: [
       { id: 'buddha', title: '佛系选（推荐）', icon: '🧘', desc: '丢给我 3 个喜欢的颜色，或者描述一种氛围（如“梦幻蓝”），剩下的交给小狼调配。' },
       { id: 'self', title: '任性玩（高玩）', icon: '🎮', desc: '自己指定混合方案！建议混搭不超过 5 种元素，以免遮挡背景美图。' },
       { id: 'surprise', title: '开惊喜（盲盒）', icon: '🎁', desc: '授权我即兴创作！你的灵感就是最好的配方，说不定会诞生绝版限定款～' },
     ],
-    // Removed static 'materials' list as per request
   },
 
-  // 3. 装饰工艺
-  decor: {
-    visualEffects: [
-      { 
-        name: "⚡ 反光工艺", 
-        price: "+10r", 
-        priceNum: 10,
-        desc: "炸街必备！开闪光灯拍摄时效果简直“炸裂”，全壳 blingbling 反射出片。",
-        note: "⚠️ 不开灯状态比普通款稍灰，它是为聚光灯而生的！",
-        image: "https://picsum.photos/seed/reflec/300/200"
-      },
-      { 
-        name: "🔮 表面工艺 (视觉膜)", 
-        price: "+2r", 
-        priceNum: 2,
-        desc: "给流麻表面加一层神奇滤镜。",
-        tags: ['镭射膜', '满天星', '碎玻璃'],
-        image: "https://picsum.photos/seed/film/300/200"
-      }
-    ],
-    collage: [
-      { name: '平面拼贴', price: '+10r', priceNum: 10, desc: '装饰胶带/贴纸，封入亚克力中', image: "https://i.postimg.cc/V656bkdr/001.png" },
-      { name: '立体拼贴', price: '+12r', priceNum: 12, desc: 'PVC材质，外层真实触感', image: "https://picsum.photos/seed/3d/200/200" },
-      { name: '巴洛克', price: '+5r', priceNum: 5, desc: '贝壳/宝石等华丽堆叠', image: "https://picsum.photos/seed/baro/200/200" },
-      { name: '立体齿轮', price: '+5r', priceNum: 5, desc: '机械/蒸汽朋克风专属', image: "https://picsum.photos/seed/gear/200/200" },
-    ],
-    hidden: [
-      { name: "夜光效果", price: "+6r", priceNum: 6, desc: "日落后开启的限定视觉。关灯即亮，无声但惊艳。", iconType: "moon", image: "https://picsum.photos/seed/glow/400/200" },
-      { name: "光变效果", price: "+3r", priceNum: 3, desc: "一晒太阳瞬间“变脸”！白变蓝紫/橙红。", iconType: "sun", image: "https://picsum.photos/seed/sunchange/400/200" }
-    ],
-    magicMirror: {
-      title: "双面幻境·光影镜",
-      desc: "开灯时：星辰闪烁的流沙画。\n关灯时：一面清晰的镜子。\n它是你的专属画作，也是你的随身魔镜。",
-      tags: ["仅限 10x15cm", "含平面拼贴"],
-      price: "+20r",
-      priceNum: 20,
-      badge: "工坊隐藏款"
+  // Path Selection
+  paths: {
+    title: "选择你的定制模式",
+    a: {
+      id: 'package',
+      icon: '✨',
+      title: '主厨推荐模式',
+      subtitle: '灵感漫游者',
+      desc: '信任小狼的审美，选择一种“装饰密度”，剩下的交给我来魔法填充。',
+      badges: ['省心', '高完成度']
+    },
+    b: {
+      id: 'custom',
+      icon: '🛠️',
+      title: '自助餐模式',
+      subtitle: '结构工程师',
+      desc: '我有明确的想法！像搭积木一样，逐项挑选我想要的工艺和配件。',
+      badges: ['自由', '精准控制']
     }
   },
 
-  // 4. 进阶结构
-  advanced: {
-    structures: [
-      { icon: '🚪', name: '翻盖款', price: '+15r', priceNum: 15, multiplier: 1, desc: '像开门一样富有仪式感。外盖装饰，内层净版。', image: "https://picsum.photos/seed/door/300/200" },
-      // Multiplier 2 means Base Price x 2
-      { icon: '🍔', name: '双层流麻', price: '基础价 × 2', priceNum: 0, multiplier: 2, desc: '空间折叠术。包含多层图+多层流沙，层次感极其丰富。', image: "https://picsum.photos/seed/double/300/200" },
-      { icon: '🌗', name: '双色分仓', price: '+20r', priceNum: 20, multiplier: 1, desc: '将流麻分为两个仓室，左红右蓝，任你想象。', image: "https://picsum.photos/seed/split/300/200" },
-    ],
-    finalTouch: [
-      { name: "碎钻镶嵌", price: "+5r", priceNum: 5, image: "https://picsum.photos/seed/diamond/100/100" },
-      { name: "普通链条 (金/银)", price: "+2r", priceNum: 2, image: "https://picsum.photos/seed/chain/100/100" },
-      { name: "背面图案定制", price: "+3r", priceNum: 3, image: "https://picsum.photos/seed/back/100/100" },
-    ],
-    contactButton: "看花眼了吗？联系小狼帮你推荐"
+  // PATH A: Decoration Packages
+  packages: [
+    { 
+      id: 'light', 
+      name: '轻装饰 · 点缀感', 
+      price: 15, 
+      desc: '画面简洁，有呼吸感，适合日常佩戴。已包含基础装饰与流沙效果。',
+      features: ['基础流沙', '少量平面拼贴', '简约排版']
+    },
+    { 
+      id: 'standard', 
+      name: '标准装饰 · 画面完整', 
+      price: 25, 
+      desc: '【店主推荐】装饰密度适中，整体完成度高，会根据设计灵活使用装饰元素。',
+      features: ['丰富流沙', '立体/平面混合', '完整构图设计']
+    },
+    { 
+      id: 'heavy', 
+      name: '高密装饰 · 视觉饱满', 
+      price: 45, 
+      desc: '装饰元素丰富，层次明显，适合偏华丽风格或想要“极繁主义”效果。',
+      features: ['复杂流沙工艺', '大量立体堆叠', '华丽边框/链条', '多层景深']
+    }
+  ],
+
+  // PATH B: Custom Categories
+  customCategories: {
+    structure: {
+      title: "结构型选择 (需确认)",
+      desc: "物理层面的改变，一旦封胶无法修改。",
+      items: [
+        { name: "翻盖款", price: "+15r", priceNum: 15, desc: "像开门一样富有仪式感。外盖装饰，内层净版。", image: "https://picsum.photos/seed/door/300/200" },
+        { name: "双层流麻", price: "基础价x2", priceNum: 0, multiplier: 2, desc: "空间折叠术。包含多层图+多层流沙，层次感极其丰富。", image: "https://picsum.photos/seed/double/300/200" },
+        { name: "双色分仓", price: "+20r", priceNum: 20, desc: "将流麻分为两个仓室，左红右蓝，任你想象。", image: "https://picsum.photos/seed/split/300/200" },
+        { name: "异形切割", price: "+30r", priceNum: 30, desc: "打破矩形限制，根据画面边缘进行特殊切割。", image: "https://picsum.photos/seed/cut/300/200" },
+      ]
+    },
+    enhancement: {
+      title: "表现型增强 (可微调)",
+      desc: "视觉特效的叠加，让画面更具张力。",
+      items: [
+        { name: "反光工艺", price: "+10r", priceNum: 10, desc: "开闪光灯炸街必备，不开灯偏灰。", image: "https://picsum.photos/seed/reflec/300/200" },
+        { name: "夜光效果", price: "+6r", priceNum: 6, desc: "关灯即亮，无声但惊艳。", image: "https://picsum.photos/seed/glow/400/200" },
+        { name: "光变效果", price: "+3r", priceNum: 3, desc: "晒太阳变色。白变蓝紫/橙红。", image: "https://picsum.photos/seed/sunchange/400/200" },
+        { name: "表面镭射膜", price: "+2r", priceNum: 2, desc: "给流麻表面加一层神奇滤镜。", image: "https://picsum.photos/seed/film/300/200" }
+      ]
+    },
+    external: {
+      title: "外部装饰 (最安全)",
+      desc: "最后一步的点缀，完全不影响内部结构。",
+      items: [
+        { name: "立体拼贴", price: "+12r", priceNum: 12, desc: "PVC材质，外层真实触感。", image: "https://picsum.photos/seed/3d/200/200" },
+        { name: "巴洛克堆叠", price: "+5r", priceNum: 5, desc: "贝壳/宝石等华丽风格。", image: "https://picsum.photos/seed/baro/200/200" },
+        { name: "立体齿轮", price: "+5r", priceNum: 5, desc: "机械/蒸汽朋克风专属。", image: "https://picsum.photos/seed/gear/200/200" },
+        { name: "碎钻镶嵌", price: "+5r", priceNum: 5, desc: "边缘镶嵌，精致闪亮。", image: "https://picsum.photos/seed/diamond/100/100" },
+        { name: "普通链条", price: "+2r", priceNum: 2, desc: "金/银色基础链条。", image: "https://picsum.photos/seed/chain/100/100" },
+      ]
+    }
+  }
+};
+
+// =================================================================
+// ✨ 小尺寸福利弹窗 (Wish Modal)
+// =================================================================
+export const WISH_MODAL_CONTENT = {
+  title: "检测到小狼的馈赠！",
+  intro: "恭喜！你选择了“随身卡包级/萌趣挂件”，已触发免费的 星辰点缀 福利！",
+  options: [
+    {
+      id: "blindbox",
+      title: "🎲 随心盲盒 (FREE)",
+      desc: "完全信任小狼的审美！只给关键词，坐等开箱惊喜。"
+    },
+    {
+      id: "diy",
+      title: "✨ 自主调配模式 (半价特权)",
+      desc: "我有想要的特定装饰/风格，想亲手参与搭配。"
+    }
+  ],
+  diyNotice: "检测到更有主见的灵魂！小尺寸专属福利已激活：所有自选装饰自动半价！",
+  blindboxForm: {
+    title: "开启盲盒许愿池",
+    style: {
+      label: "心之所属 (风格)",
+      tags: ["#梦幻粉紫", "#暗黑哥特", "#清透夏日", "#复古油画"],
+      placeholder: "或输入自定义风格..."
+    },
+    taboo: {
+      label: "绝对禁区 (避雷)",
+      placeholder: "例如：密集恐惧、蝴蝶、金色配件等",
+      required: true
+    },
+    button: "生成契约"
   }
 };
 
@@ -270,36 +340,9 @@ export const FULFILLMENT_CONTENT = {
     intro: "(｡•̀ᴗ-)✧ 小狼知道，有些心意是迫不及待想要送达的。为了应对这种紧急的“魔法召唤”，工坊特别开设了“时间加速通道”。",
     warning: "💡 注意：催动时间魔法需要消耗工坊主大量的精力值（和咖啡因 ☕），并且会打乱现有的制作序列，所以需要支付额外的“魔力涌动费用”哦！",
     tiers: [
-      {
-        id: "rush-speed",
-        name: "超光速档",
-        fee: "+50%",
-        multiplier: 0.5,
-        time: "1-2天内",
-        desc: "纪念日前最后一刻的极限拯救！",
-        icon: "⚡",
-        color: "purple"
-      },
-      {
-        id: "rush-priority",
-        name: "优先处理档",
-        fee: "+30%",
-        multiplier: 0.3,
-        time: "3-4天内",
-        desc: "哎呀，下周就要送礼了！",
-        icon: "🏎️",
-        color: "red"
-      },
-      {
-        id: "rush-stable",
-        name: "稳定提速档",
-        fee: "+10%",
-        multiplier: 0.1,
-        time: "7天内",
-        desc: "不想等太久，稍微快一点就好。",
-        icon: "🏃",
-        color: "blue"
-      }
+      { id: "rush-speed", name: "超光速档", fee: "+50%", multiplier: 0.5, time: "1-2天内", desc: "纪念日前最后一刻的极限拯救！", icon: "⚡", color: "purple" },
+      { id: "rush-priority", name: "优先处理档", fee: "+30%", multiplier: 0.3, time: "3-4天内", desc: "哎呀，下周就要送礼了！", icon: "🏎️", color: "red" },
+      { id: "rush-stable", name: "稳定提速档", fee: "+10%", multiplier: 0.1, time: "7天内", desc: "不想等太久，稍微快一点就好。", icon: "🏃", color: "blue" }
     ],
     status: {
       idle: "🍵 悠闲模式 (订单较少)：上述加急费用将作为基准价执行。",
@@ -320,39 +363,12 @@ export const FULFILLMENT_CONTENT = {
   },
 
   packaging: [
-    {
-      title: "【标准防护单元】",
-      engName: "Standard Shield",
-      tag: "Default / Free",
-      desc: "安全第一！瓦楞纸飞机盒 + 加厚气泡缓冲层 + 硫酸纸防尘封印。确保流麻完好无损地穿越现实世界的颠簸。",
-      image: "https://picsum.photos/400/300?grayscale&blur=2", // Placeholder
-      isUpgrade: false,
-      price: "0r",
-      priceNum: 0,
-      rawPrice: 0
-    },
-    {
-      title: "【星尘礼遇单元】",
-      engName: "Stardust Gift Set",
-      tag: "Upgrade (+15r)",
-      desc: "送给TA（或自己）的惊喜。升级为硬质天地盖礼盒，内衬深空拉菲草，附赠【工坊收藏证书】及【专用养护布】。",
-      image: "https://picsum.photos/400/300?random=gift", // Placeholder
-      isUpgrade: true,
-      price: "+15r",
-      priceNum: 15,
-      rawPrice: 15
-    }
+    { title: "【标准防护单元】", engName: "Standard Shield", tag: "Default / Free", desc: "安全第一！瓦楞纸飞机盒 + 加厚气泡缓冲层 + 硫酸纸防尘封印。确保流麻完好无损地穿越现实世界的颠簸。", image: "https://picsum.photos/400/300?grayscale&blur=2", isUpgrade: false, price: "0r", priceNum: 0, rawPrice: 0 },
+    { title: "【星尘礼遇单元】", engName: "Stardust Gift Set", tag: "Upgrade (+15r)", desc: "送给TA（或自己）的惊喜。升级为硬质天地盖礼盒，内衬深空拉菲草，附赠【工坊收藏证书】及【专用养护布】。", image: "https://picsum.photos/400/300?random=gift", isUpgrade: true, price: "+15r", priceNum: 15, rawPrice: 15 }
   ],
 
   warranty: {
-    title: "", 
-    intro: "",
-    steps: [],
-    reason: "",
-    promiseTitle: "",
-    promiseDesc: "",
-    highlight: "",
-    subPromise: ""
+    title: "", intro: "", steps: [], reason: "", promiseTitle: "", promiseDesc: "", highlight: "", subPromise: ""
   }
 };
 
@@ -367,57 +383,10 @@ export const BENEFITS_CONTENT = {
   badge: "全场包邮 · 惊喜掉落",
   
   global: [
-    {
-      title: "“首次委托”优惠",
-      discount: "9折",
-      subDiscount: "/ 10% OFF",
-      desc: "第一次下单，享9折体验优惠！",
-      iconType: "gift",
-      badge: "New"
-    },
-    {
-      title: "“熟客回馈”计划",
-      discount: "8.5折",
-      subDiscount: "/ VIP",
-      desc: "第二笔订单起，自动升级VIP。",
-      iconType: "heart",
-      badge: null
-    },
-    {
-      title: "“灵感碰撞”折扣",
-      discount: "Max 7折",
-      subDiscount: "/ Surprise",
-      desc: "设计方案独特，掉落随机折扣！",
-      iconType: "zap",
-      badge: null
-    }
-  ],
-
-  special: {
-    badge: "工坊主小狼的特别福利",
-    title: "免费的“星辰点缀”",
-    desc: "( ´▽` )ﾉ 等一下！在进入复杂的选材环节前，小狼为你准备了一个专属的小礼物！\n针对 “随身卡包级(48r)” 和 “萌趣挂件系(35r)” 的客人，提供一次免费的装饰体验！",
-    mode1: {
-      tag: "完全免费",
-      title: "许愿模式",
-      desc: "你来许愿，我来点亮！不需要费心挑选，只需要告诉我你想要的【风格】和【避雷】元素。",
-      points: [
-        "化身“专属搭配师”，为你挑选 2-3种 最合适的装饰",
-        "收获开盲盒般的惊喜，可能包含隐藏款材料！"
-      ]
-    },
-    mode2: {
-      tag: "半价指定",
-      title: "半价指定模式",
-      desc: "“不行！我就是有非常想用的特定装饰！”没问题，满足你的强迫症！",
-      points: [
-        "指定使用特定装饰，所有指定装饰享受 半价优惠",
-        "精准满足需求，同时享受实实在在的折扣"
-      ]
-    },
-    reasonTitle: "为什么要推出这个福利？",
-    reasonDesc: "“因为小狼相信，最好的创作往往源于信任和一点点小小的即兴发挥。这个福利，是我邀请你与我一同‘共创’的邀请函。希望它能让你在定制的过程中，感受到更多的乐趣和惊喜！”"
-  }
+    { title: "“首次委托”优惠", discount: "9折", subDiscount: "/ 10% OFF", desc: "第一次下单，享9折体验优惠！", iconType: "gift", badge: "New" },
+    { title: "“熟客回馈”计划", discount: "8.5折", subDiscount: "/ VIP", desc: "第二笔订单起，自动升级VIP。", iconType: "heart", badge: null },
+    { title: "“灵感碰撞”折扣", discount: "Max 7折", subDiscount: "/ Surprise", desc: "设计方案独特，掉落随机折扣！", iconType: "zap", badge: null }
+  ]
 };
 
 // =================================================================
@@ -433,80 +402,10 @@ export const GALLERY_CATEGORIES = [
 ];
 
 export const GALLERY_PRODUCTS: Product[] = [
-  {
-    id: '001',
-    archiveId: 'N°001',
-    category: 'luxury',
-    codeName: '苍蓝视界·无下限',
-    title: '角色印象·极致华丽款',
-    description: '采用多层蓝紫色系叠加，还原“赫”与“苍”碰撞的瞬间。',
-    fullDescription: '这是为“诞生祭”特别定制的礼物。灵感来源于最强咒术师的无下限术式。\n\n我们在流沙层中使用了极其稀有的进口变色龙粉，在不同角度下呈现出从苍蓝到紫红的渐变，模拟咒力流动的轨迹。背景采用了复杂的教堂窗花镭射工艺，象征着神性与人性的交织。',
-    imageUrl: 'https://picsum.photos/600/800?random=1',
-    galleryImages: ['https://picsum.photos/600/600?random=101', 'https://picsum.photos/600/600?random=102'],
-    tags: ['高难定制', '角色印象', '华丽风'],
-    craftParams: {
-      size: '10x15cm (记忆珍藏版)',
-      time: '14天',
-      techniques: ['多层悬浮滴胶', '进口变色龙粉', '镭射雕刻', '手工打磨']
-    },
-    isNew: true
-  },
-  {
-  "id": "002",
-  "archiveId": "N°002",
-  "category": "atmosphere",
-  "codeName": "森之语·鹿遇星光",
-  "title": "角色印象·绮梦幻想",
-  "description": "灵感源于森之少女与星辰的邂逅，将鹿灵的纯真与夜光的梦幻凝于一方天地。",
-  "fullDescription": "核心创作理念源自那位自森林深处走来的鹿灵少女。为还原其空灵与自然的双重气质，本作采用了精巧的双层流麻结构，构筑出景深分明的视觉空间。\n\n主体视觉由浅粉色的基底与内嵌的白色夜光材质构成，在日间呈现温婉的少女感，于暗处则散发出林间萤火般的微光。前景悬浮着剔透的花瓣亮片，随着晃动缓缓飘落，动态模拟了角色登场时落英缤纷的场景。外层更辅以多层次的立体拼贴工艺，巴洛克风格的树脂花与金色锆石链条交错，象征着自然野性与文明饰品的碰撞融合，为整体的梦幻感增添一丝华丽注脚。",
-  "imageUrl": "https://i.postimg.cc/V656bkdr/001.png",
-  "galleryImages": [
-    "https://i.postimg.cc/bYRPj2Lr/ezgif-1e8507e0015c5ff7.gif",
-    "https://s41.ax1x.com/2025/12/10/pZusdoj.png"
-  ],
-  "tags": ["IP联名", "绮丽幻想", "立体工艺"],
-  "craftParams": {
-    "size": "7.5x13cm",
-    "time": "约12天",
-    "techniques": ["双层景深流麻", "夜光材质注入", "多层立体拼贴", "巴洛克风格雕花", "锆石金链镶嵌"]
-    }
-  },
-  {
-    "id": "118",
-    "archiveId": "N°118",
-    "category": "luxury",
-    "codeName": "虚空蝶梦·倾奇者",
-    "title": "角色印象·绮罗典藏",
-    "description": "以巴洛克式华丽重构散兵的孤傲与蜕变，于反光工艺中捕捉他那撕裂宿命的瞬间。",
-    "fullDescription": "用具象化的艺术语言，去诠释他从人偶到‘倾奇者’身份的流转与挣扎。为还原其破碎又华丽的美学，本作采用了复合背景反光工艺，以此来动态模拟其周身散逸的元素能量。主体视觉由深邃的紫色调构成，立体拼贴的彩窗蝴蝶象征着挣脱束缚的灵魂，而精巧的巴洛克树脂花则暗喻其出身的高贵与被扭曲的命运。边缘环绕的紫色碎钻，不仅构建出丰富的视觉深度，更是在每一次光线流转中，折射出角色内心的矛盾与锋芒。",
-    "imageUrl": "https://i.ibb.co/vCRrPzGD/003.png",
-    "galleryImages": [
-      "https://picsum.photos/600/600?random=501",
-      "https://picsum.photos/600/600?random=237"
-      ],
-      "tags": ["巴洛克幻想", "角色印象", "反光工艺"],
-      "craftParams": {
-        "size": "10x15cm",
-        "time": "约15-20天","techniques": ["背景反光复合工艺", "立体彩窗蝴蝶拼贴", "巴洛克树脂花艺", "手工碎钻围边镶嵌"]
-    }
-  },
-  {
-    id: '004',
-    archiveId: 'N°004',
-    category: 'special',
-    codeName: '星轨·夜行',
-    title: '特殊工艺款',
-    description: '异形切割边框，内置夜光星图，熄灯后的另一个世界。',
-    fullDescription: '这是对技术的一次挑战。\n\n外框不再是传统的长方形，而是根据星轨走向进行了不规则的异形切割。流沙中混合了长效夜光沙，吸光30分钟后，能在黑暗中持续发光2小时。仿佛将一片星空装进了口袋。',
-    imageUrl: 'https://picsum.photos/600/800?random=4',
-    galleryImages: ['https://picsum.photos/600/600?random=401', 'https://picsum.photos/600/600?random=402'],
-    tags: ['特殊工艺', '异形定制', '夜光效果'],
-    craftParams: {
-      size: '12x12cm (异形)',
-      time: '20天',
-      techniques: ['异形激光切割', '夜光沙填充', '双面观赏']
-    }
-  }
+  { id: '001', archiveId: 'N°001', category: 'luxury', codeName: '苍蓝视界·无下限', title: '角色印象·极致华丽款', description: '采用多层蓝紫色系叠加，还原“赫”与“苍”碰撞的瞬间。', fullDescription: '这是为“诞生祭”特别定制的礼物。灵感来源于最强咒术师的无下限术式。\n\n我们在流沙层中使用了极其稀有的进口变色龙粉，在不同角度下呈现出从苍蓝到紫红的渐变，模拟咒力流动的轨迹。背景采用了复杂的教堂窗花镭射工艺，象征着神性与人性的交织。', imageUrl: 'https://picsum.photos/600/800?random=1', galleryImages: ['https://picsum.photos/600/600?random=101', 'https://picsum.photos/600/600?random=102'], tags: ['高难定制', '角色印象', '华丽风'], craftParams: { size: '10x15cm (记忆珍藏版)', time: '14天', techniques: ['多层悬浮滴胶', '进口变色龙粉', '镭射雕刻', '手工打磨'] }, isNew: true },
+  { "id": "002", "archiveId": "N°002", "category": "atmosphere", "codeName": "森之语·鹿遇星光", "title": "角色印象·绮梦幻想", "description": "灵感源于森之少女与星辰的邂逅，将鹿灵的纯真与夜光的梦幻凝于一方天地。", "fullDescription": "核心创作理念源自那位自森林深处走来的鹿灵少女。为还原其空灵与自然的双重气质，本作采用了精巧的双层流麻结构，构筑出景深分明的视觉空间。\n\n主体视觉由浅粉色的基底与内嵌的白色夜光材质构成，在日间呈现温婉的少女感，于暗处则散发出林间萤火般的微光。前景悬浮着剔透的花瓣亮片，随着晃动缓缓飘落，动态模拟了角色登场时落英繽紛的场景。外层更辅以多层次的立体拼贴工艺，巴洛克风格的树脂花与金色锆石链条交错，象征着自然野性与文明饰品的碰撞融合，为整体的梦幻感增添一丝华丽注脚。", "imageUrl": "https://i.postimg.cc/V656bkdr/001.png", "galleryImages": [ "https://i.postimg.cc/bYRPj2Lr/ezgif-1e8507e0015c5ff7.gif", "https://s41.ax1x.com/2025/12/10/pZusdoj.png" ], "tags": ["IP联名", "绮丽幻想", "立体工艺"], "craftParams": { "size": "7.5x13cm", "time": "约12天", "techniques": ["双层景深流麻", "夜光材质注入", "多层立体拼贴", "巴洛克风格雕花", "锆石金链镶嵌"] } },
+  { "id": "118", "archiveId": "N°118", "category": "luxury", "codeName": "虚空蝶梦·倾奇者", "title": "角色印象·绮罗典藏", "description": "以巴洛克式华丽重构散兵的孤傲与蜕变，于反光工艺中捕捉他那撕裂宿命的瞬间。", "fullDescription": "用具象化的艺术语言，去诠释他从人偶到‘倾奇者’身份的流转与挣扎。为还原其破碎又华丽的美学，本作采用了复合背景反光工艺，以此来动态模拟其周身散逸的元素能量。主体视觉由深邃的紫色调构成，立体拼贴的彩窗蝴蝶象征着挣脱束缚的灵魂，而精巧的巴洛克树脂花则暗喻其出身的高贵与被扭曲的命运。边缘环绕的紫色碎钻，不仅构建出丰富的视觉深度，更是在每一次光线流转中，折射出角色内心的矛盾与锋芒。", "imageUrl": "https://i.ibb.co/vCRrPzGD/003.png", "galleryImages": [ "https://picsum.photos/600/600?random=501", "https://picsum.photos/600/600?random=237" ], "tags": ["巴洛克幻想", "角色印象", "反光工艺"], "craftParams": { "size": "10x15cm", "time": "约15-20天","techniques": ["背景反光复合工艺", "立体彩窗蝴蝶拼贴", "巴洛克树脂花艺", "手工碎钻围边镶嵌"] } },
+  { id: '004', archiveId: 'N°004', category: 'special', codeName: '星轨·夜行', title: '特殊工艺款', description: '异形切割边框，内置夜光星图，熄灯后的另一个世界。', fullDescription: '这是对技术的一次挑战。\n\n外框不再是传统的长方形，而是根据星轨走向进行了不规则的异形切割。流沙中混合了长效夜光沙，吸光30分钟后，能在黑暗中持续发光2小时。仿佛将一片星空装进了口袋。', imageUrl: 'https://picsum.photos/600/800?random=4', galleryImages: ['https://picsum.photos/600/600?random=401', 'https://picsum.photos/600/600?random=402'], tags: ['特殊工艺', '异形定制', '夜光效果'], craftParams: { size: '12x12cm (异形)', time: '20天', techniques: ['异形激光切割', '夜光沙填充', '双面观赏'] } }
 ];
 
 // =================================================================
@@ -516,32 +415,9 @@ export const MODIFICATION_POLICY_CONTENT = {
   sectionTitle: "定制与修改法则",
   sectionSubtitle: "/ Modification Policy",
   stages: [
-    {
-      step: "Stage 1",
-      title: "设计图确认",
-      engTitle: "The Blueprint",
-      desc: "在封胶前，小狼会提供平面布局预览。这是修改贴纸位置的唯一机会！确认后即视为定稿，进入不可逆制作流程。",
-      warning: "一旦封胶，平面层无法移动/修改。",
-      icon: "blueprint"
-    },
-    {
-      step: "Stage 2",
-      title: "流沙的随机性",
-      engTitle: "Chaos Theory",
-      desc: "流沙层为液体艺术，纹理随缘生成。我们会严格按照约定配色制作，但无法精确控制每一颗闪粉的落点。请享受这份独一无二的随机美。",
-      icon: "chaos"
-    },
-    {
-      step: "Stage 3",
-      title: "成品微调",
-      engTitle: "Final Touches",
-      desc: "成品产出后，仅支持对表面立体装饰（如外贴的钻、金属件）进行微调。",
-      list: [
-        "1次免费微调机会。请一次性整理好修改意见哦~",
-        "若需额外修改或大改（如拆除重做），需支付 30%~50% 的重置工费。"
-      ],
-      icon: "wrench"
-    }
+    { step: "Stage 1", title: "设计图确认", engTitle: "The Blueprint", desc: "在封胶前，小狼会提供平面布局预览。这是修改贴纸位置的唯一机会！确认后即视为定稿，进入不可逆制作流程。", warning: "一旦封胶，平面层无法移动/修改。", icon: "blueprint" },
+    { step: "Stage 2", title: "流沙的随机性", engTitle: "Chaos Theory", desc: "流沙层为液体艺术，纹理随缘生成。我们会严格按照约定配色制作，但无法精确控制每一颗闪粉的落点。请享受这份独一-的随机美。", icon: "chaos" },
+    { step: "Stage 3", title: "成品微调", engTitle: "Final Touches", desc: "成品产出后，仅支持对表面立体装饰（如外贴的钻、金属件）进行微调。", list: [ "1次免费微调机会。请一次性整理好修改意见哦~", "若需额外修改或大改（如拆除重做），需支付 30%~50% 的重置工费。" ], icon: "wrench" }
   ],
   emptiness: {
     title: "关于“留白”的艺术",
@@ -609,6 +485,7 @@ export const CHECKOUT_CONTENT = {
     packFee: "包装费",
     discount: "优惠折扣",
     total: "预估总价",
+    saved: "已省下",
     inputPlaceholder: "输入优惠码 (如: WOLF)",
     redeem: "兑换",
     disclaimerTitle: "定制契约书",
@@ -616,16 +493,27 @@ export const CHECKOUT_CONTENT = {
     fluidRecipe: "流沙配方"
   },
   schedule: {
-    title: "作息提示：",
-    items: [
-      { icon: "📅", label: "工作日：", text: "小狼通常在北京时间10:00 - 22:00出没于工坊。" },
-      { icon: "🌙", label: "夜晚：", text: "22:00后工坊会进入“休眠模式”，讯息会在次日醒来后第一时间处理。" },
-      { icon: "🏖️", label: "周末：", text: "小狼会随机掉落，进行“精神光合作用”，回复可能变慢，敬请谅解。" }
-    ],
-    footer: "(你的耐心等待，是让魔法顺利诞生的最佳咒语。)"
+    title: "工坊作息状态",
+    statuses: {
+      working: {
+        icon: "🟢",
+        label: "工坊营业中",
+        text: "小狼正在工坊中工作中，当前回复稳定，消息会很快被看到"
+      },
+      sleeping: {
+        icon: "🌙",
+        label: "休眠模式",
+        text: "留言已存入梦境，醒来即回。"
+      },
+      weekend: {
+        icon: "🏖️",
+        label: "周末慢活",
+        text: "周末慢节奏中回复可能随机，留言都会被看到 🌱"
+      }
+    }
   },
   copyTemplate: {
-    intro: "Hi小狼，我想定制流沙麻将：\n",
+    intro: "🦉 咚咚咚！来自 StarrySand 的信使到了！\n工坊主小狼，这是我的【定制契约】，请查收：\n",
     separator: "----------------\n",
     size: "🖼️ 尺寸：",
     craft: "🛠️ 工艺：",
@@ -645,18 +533,12 @@ export const CHECKOUT_CONTENT = {
     disclaimer: "(此为系统预估，最终价格以沟通为准)"
   },
   actions: {
-    copy: {
-      label: "复制订单发送给小狼",
-      success: "已复制"
-    },
-    wechat: {
-      label: "微信直连",
-      sub: "信任通道 · 熟客推荐",
-      success: "已复制"
+    copy: { 
+      label: "🦉 召唤工坊主 & 投递契约", 
+      success: "✨ 契约已生成并复制，去微信粘贴给小狼吧！" 
     },
     platform: {
-      label: "平台支付",
-      sub: "保障通道 · 萌新首选",
+      popoverText: "需要更多保障？点击前往闲鱼/微店担保交易",
       lockedHint: "为了保障权益，请先滑动上方滑块签署契约"
     }
   }

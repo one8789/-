@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Sparkles, ChevronDown } from 'lucide-react';
-import { NAV_CONTENT } from '../content';
+import { NAV_CONTENT, SITE_INFO } from '../content';
 import { useOrder } from '../contexts/OrderContext';
 
 const Header: React.FC = () => {
@@ -48,7 +48,7 @@ const Header: React.FC = () => {
         {/* Logo */}
         <div className="flex items-center gap-2 text-primary-600 cursor-pointer">
           <Sparkles className="w-6 h-6 animate-pulse" />
-          <span className="text-2xl font-bold tracking-wide">StarrySand</span>
+          <span className="text-xl md:text-2xl font-bold tracking-wide">{SITE_INFO.logoText}</span>
         </div>
 
         {/* Desktop Nav */}

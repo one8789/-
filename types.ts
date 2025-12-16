@@ -33,3 +33,13 @@ export interface ShowcaseItem {
   comment: string;
   tag: 'OFFICIAL' | 'STARFIRE';
 }
+
+export type DecorationMode = 'package' | 'custom';
+
+export interface DecorationPackage {
+  id: 'light' | 'standard' | 'heavy';
+  name: string;
+  price: number;
+  desc: string;
+  features: string[];
+}

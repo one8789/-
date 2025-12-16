@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+
+import React, { useState, useRef, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import FutureCard from './FutureCard';
 import ProductDetailModal from './ProductDetailModal';
 import { Product } from '../types';
 import { GALLERY_PRODUCTS, GALLERY_CATEGORIES } from '../content';
+import { MoveRight } from 'lucide-react';
 
 const Gallery: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showSwipeHint, setShowSwipeHint] = useState(true);
 
   const filteredProducts = activeCategory === 'future'
     ? []
@@ -16,6 +20,12 @@ const Gallery: React.FC = () => {
       : GALLERY_PRODUCTS.filter(p => p.category === activeCategory);
 
   const showFutureCard = activeCategory === 'all' || activeCategory === 'future';
+  const totalItems = filteredProducts.length + (showFutureCard ? 1 : 0);
+
+  // Hide swipe hint on interaction
+  const handleScroll = () => {
+    if (showSwipeHint) setShowSwipeHint(false);
+  };
 
   return (
     <section id="gallery" className="py-24 bg-primary-50/30">
@@ -56,33 +66,49 @@ const Gallery: React.FC = () => {
 
         {/* 
            Product Display Area 
-           Mobile: Horizontal Scroll with Snap
+           Mobile: Horizontal Scroll with Snap & Visual Cues
            Desktop: Grid
         */}
-        <div className="
-          flex overflow-x-auto snap-x snap-mandatory gap-5 pb-8 -mx-6 px-6 no-scrollbar 
-          md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-8 md:mx-0 md:pb-0 md:px-0
-        ">
-          {filteredProducts.map((product) => (
-            <div key={product.id} className="min-w-[80vw] md:min-w-0 snap-center h-full">
-              <ProductCard 
-                product={product} 
-                onClick={(p) => setSelectedProduct(p)}
-              />
-            </div>
-          ))}
-          
-          {/* The "Future" placeholder slot */}
-          {showFutureCard && (
-            <div id="future" className="min-w-[80vw] md:min-w-0 snap-center h-full">
-               <FutureCard />
+        <div className="relative">
+          {/* Swipe Hint Overlay (Mobile) */}
+          {showSwipeHint && totalItems > 1 && (
+            <div className="md:hidden absolute right-0 top-1/2 -translate-y-1/2 z-20 pointer-events-none animate-pulse flex items-center gap-1 bg-gradient-to-l from-white/90 to-transparent pl-8 pr-2 py-12">
+               <span className="text-xs font-bold text-primary-500">滑动查看</span>
+               <div className="w-8 h-8 rounded-full bg-white/80 shadow-md flex items-center justify-center text-primary-500 animate-bounce-right">
+                  <MoveRight className="w-5 h-5" />
+               </div>
             </div>
           )}
+
+          <div 
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="
+              flex overflow-x-auto snap-x snap-mandatory gap-5 pb-8 -mx-6 px-6 no-scrollbar 
+              md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-8 md:mx-0 md:pb-0 md:px-0
+            "
+          >
+            {filteredProducts.map((product) => (
+              <div key={product.id} className="min-w-[80vw] md:min-w-0 snap-center h-full">
+                <ProductCard 
+                  product={product} 
+                  onClick={(p) => setSelectedProduct(p)}
+                />
+              </div>
+            ))}
+            
+            {/* The "Future" placeholder slot */}
+            {showFutureCard && (
+              <div id="future" className="min-w-[80vw] md:min-w-0 snap-center h-full">
+                 <FutureCard />
+              </div>
+            )}
+          </div>
         </div>
         
-        {/* Mobile hint */}
-        <div className="md:hidden text-center text-xs text-gray-400 mt-2 animate-pulse">
-          &larr; 左右滑动查看更多 · 长按图片查看全貌 &rarr;
+        {/* Mobile Simple Progress Bar */}
+        <div className="md:hidden w-32 h-1 bg-gray-200 rounded-full mx-auto mt-2 overflow-hidden">
+           <div className="w-1/2 h-full bg-primary-300 rounded-full animate-shimmer"></div>
         </div>
 
       </div>
@@ -94,6 +120,16 @@ const Gallery: React.FC = () => {
           onClose={() => setSelectedProduct(null)} 
         />
       )}
+      
+      <style>{`
+        @keyframes bounce-right {
+           0%, 100% { transform: translateX(0); }
+           50% { transform: translateX(5px); }
+        }
+        .animate-bounce-right {
+           animation: bounce-right 1s infinite;
+        }
+      `}</style>
     </section>
   );
 };
