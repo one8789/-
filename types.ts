@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string; // Internal ID
   archiveId: string; // Display ID like N°001
@@ -14,7 +15,18 @@ export interface Product {
     time: string;
     techniques: string[];
   };
+  // New: Configuration for one-click replica
+  presetConfig?: PresetConfig;
   isNew?: boolean;
+}
+
+export interface PresetConfig {
+  sizeName: string; // Must match names in PROCESS_CONTENT.sizes
+  fluidDesc: string; // Description for the fluid strategy
+  decorationMode: DecorationMode;
+  packageName?: string; // If mode is package, match name
+  addonNames?: string[]; // If mode is custom, match names
+  estimatedPrice?: number; // Visual placeholder price
 }
 
 export interface NavItem {

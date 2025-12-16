@@ -1,7 +1,8 @@
+
 import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
-import { DISCOUNT_CODES } from '../content';
+import { DISCOUNT_CODES, PROCESS_CONTENT } from '../content';
 import { isComplexPrice } from '../utils/price';
-import { DecorationMode, DecorationPackage } from '../types';
+import { DecorationMode, DecorationPackage, PresetConfig } from '../types';
 
 // Define structure for an order item
 export interface OrderItem {
@@ -97,6 +98,7 @@ interface OrderContextType {
   selectDecorationPackage: (pkg: DecorationPackage | null) => void;
 
   clearOrder: () => void;
+  loadPreset: (config: PresetConfig) => void; // New function
   addDiscount: (code: string) => void;
   removeDiscount: (code: string) => void;
   setConsultationMode: (mode: boolean) => void;
@@ -351,6 +353,68 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setConsultationMode(false);
     setDiscountNotification(null);
   };
+  
+  // New Function: Load Preset from Product
+  const loadPreset = (config: PresetConfig) => {
+    clearOrder();
+    
+    // 1. Set Size
+    const sizeItem = PROCESS_CONTENT.sizes.find(s => s.name === config.sizeName);
+    if (sizeItem) {
+        selectSize(sizeItem);
+    }
+
+    // 2. Set Fluid (Buddha style default for replica)
+    selectFluid({
+        strategyId: 'buddha',
+        strategyTitle: '佛系选',
+        description: '同款复刻',
+        note: config.fluidDesc
+    });
+
+    // 3. Set Mode
+    setDecorationMode(config.decorationMode);
+
+    if (config.decorationMode === 'package' && config.packageName) {
+        const pkg = PROCESS_CONTENT.packages.find(p => p.name === config.packageName);
+        if (pkg) selectDecorationPackage(pkg as any); // Cast because of minor type mismatch in source
+    } 
+    else if (config.decorationMode === 'custom' && config.addonNames) {
+        // Find each addon in PROCESS_CONTENT.customCategories
+        config.addonNames.forEach(name => {
+             // Search all categories
+             const allCats = PROCESS_CONTENT.customCategories;
+             let found = false;
+             
+             // Check Structure
+             const structItem = allCats.structure.items.find(i => i.name === name);
+             if (structItem) {
+                 toggleAddon('Structure', structItem.name, structItem.price, structItem.priceNum, structItem.multiplier);
+                 found = true;
+             }
+
+             if (!found) {
+                // Check Enhancement
+                 const enhanceItem = allCats.enhancement.items.find(i => i.name === name);
+                 if (enhanceItem) {
+                     toggleAddon('Visual Effect', enhanceItem.name, enhanceItem.price, enhanceItem.priceNum);
+                     found = true;
+                 }
+             }
+
+             if (!found) {
+                // Check External
+                 const extItem = allCats.external.items.find(i => i.name === name);
+                 if (extItem) {
+                     let cat = 'External';
+                     if (name === '立体拼贴') cat = 'Collage';
+                     if (name === '巴洛克堆叠') cat = 'Baroque';
+                     toggleAddon(cat, extItem.name, extItem.price, extItem.priceNum);
+                 }
+             }
+        });
+    }
+  };
 
   return (
     <OrderContext.Provider value={{
@@ -380,6 +444,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       selectDecorationPackage,
       
       clearOrder,
+      loadPreset,
       addDiscount,
       removeDiscount,
       setConsultationMode,

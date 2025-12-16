@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Ruler, Palette, Wand2, Layers, 
   Hammer, Zap, Sun, Gem, Scissors, 
-  Fingerprint, Eye, Sparkles, Moon, Coffee, Star, X, AlertTriangle, Truck, Camera, HelpCircle, Package, Check, ChevronDown, ZoomIn, Heart, Info, Circle, Send, ArrowRight, ArrowLeft, RefreshCcw, Layout, ShoppingCart, Clock, AlertCircle, Calendar, Gift
+  Fingerprint, Eye, Sparkles, Moon, Coffee, Star, X, AlertTriangle, Truck, Camera, HelpCircle, Package, Check, ChevronDown, ZoomIn, Heart, Info, Circle, Send, ArrowRight, ArrowLeft, RefreshCcw, Layout, ShoppingCart, Clock, AlertCircle, Calendar, Gift, BookOpen
 } from 'lucide-react';
 import { PROCESS_CONTENT, SITE_STATUS, FULFILLMENT_CONTENT, CONSULTATION_CONTENT, SELF_WILL_MATERIALS, WISH_MODAL_CONTENT } from '../content';
 import { useOrder, FluidSelection } from '../contexts/OrderContext';
@@ -641,17 +641,22 @@ const Process: React.FC = () => {
                                                             <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
                                                             {FULFILLMENT_CONTENT.rush.warning}
                                                         </div>
-                                                        <div className="grid grid-cols-3 gap-2">
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                                             {FULFILLMENT_CONTENT.rush.tiers.map((tier, idx) => (
                                                                 <div 
                                                                     key={idx} 
                                                                     onClick={(e) => { e.stopPropagation(); !isBusy && selectRush(tier); }}
-                                                                    className={`border rounded-xl p-2 text-center cursor-pointer transition-all ${selectedRush?.name === tier.name ? 'border-orange-500 bg-white ring-1 ring-orange-200 shadow-sm' : 'border-gray-200 bg-white/50 hover:bg-white'}`}
+                                                                    className={`border rounded-xl p-3 text-center cursor-pointer transition-all flex flex-col justify-between ${selectedRush?.name === tier.name ? 'border-orange-500 bg-white ring-1 ring-orange-200 shadow-sm' : 'border-gray-200 bg-white/50 hover:bg-white'}`}
                                                                 >
-                                                                    <div className="text-lg mb-1">{tier.icon}</div>
-                                                                    <div className="font-bold text-xs text-gray-800 scale-90">{tier.name}</div>
-                                                                    <div className="text-[10px] text-gray-400 scale-75 origin-center">{tier.time}</div>
-                                                                    <div className="text-orange-600 font-bold text-xs mt-1">{tier.fee}</div>
+                                                                    <div>
+                                                                        <div className="text-xl mb-1">{tier.icon}</div>
+                                                                        <div className="font-bold text-sm text-gray-800">{tier.name}</div>
+                                                                        <div className="text-[10px] text-gray-500 my-1 leading-tight italic px-1">{tier.desc}</div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="text-[10px] text-gray-400 font-mono mt-1">{tier.time}</div>
+                                                                        <div className="text-orange-600 font-bold text-xs">{tier.fee}</div>
+                                                                    </div>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -695,22 +700,51 @@ const Process: React.FC = () => {
                                             })}
                                         </div>
                                     </div>
+                                    
+                                    {/* 3. Shipping & Confirmation */}
+                                    <div className="mt-6 bg-indigo-50/50 rounded-xl p-4 border border-indigo-100 space-y-4">
+                                        <div className="flex gap-3">
+                                            <div className="w-6 h-6 rounded-full bg-white text-indigo-500 flex items-center justify-center shrink-0 text-xs font-bold border border-indigo-100 shadow-sm">1</div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-800 text-sm mb-1">{FULFILLMENT_CONTENT.shipping.confirm.title}</h4>
+                                                <p className="text-xs text-gray-500 leading-relaxed">{FULFILLMENT_CONTENT.shipping.confirm.desc}</p>
+                                            </div>
+                                        </div>
+                                        <div className="w-full border-t border-dashed border-indigo-200/50"></div>
+                                        <div className="flex gap-3">
+                                            <div className="w-6 h-6 rounded-full bg-white text-indigo-500 flex items-center justify-center shrink-0 text-xs font-bold border border-indigo-100 shadow-sm">2</div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-800 text-sm mb-1">{FULFILLMENT_CONTENT.shipping.send.title}</h4>
+                                                <p className="text-xs text-gray-500 leading-relaxed">{FULFILLMENT_CONTENT.shipping.send.desc}</p>
+                                            </div>
+                                        </div>
+                                    </div>
 
                                     {/* Action Button */}
-                                    <div className="mt-8 pt-6 border-t border-gray-100 flex justify-between items-center">
-                                       <button 
-                                          onClick={prevStep}
-                                          className="flex items-center gap-2 text-gray-500 text-sm hover:text-gray-800 transition-colors"
-                                       >
-                                          <ArrowLeft className="w-4 h-4"/> 上一步
-                                       </button>
-                                       
-                                       <button 
-                                          onClick={() => toggleModal(true)}
-                                          className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold bg-primary-500 text-white hover:bg-primary-600 transition-colors shadow-lg hover:shadow-primary-200 animate-pulse"
-                                       >
-                                          完成并预览契约 <ShoppingCart className="w-4 h-4" />
-                                       </button>
+                                    <div className="mt-8 pt-6 border-t border-gray-100">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <button 
+                                                onClick={prevStep}
+                                                className="flex items-center gap-2 text-gray-500 text-sm hover:text-gray-800 transition-colors"
+                                            >
+                                                <ArrowLeft className="w-4 h-4"/> 上一步
+                                            </button>
+                                            
+                                            <button 
+                                                onClick={() => toggleModal(true)}
+                                                className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold bg-primary-500 text-white hover:bg-primary-600 transition-colors shadow-lg hover:shadow-primary-200 animate-pulse"
+                                            >
+                                                完成并预览契约 <ShoppingCart className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        {/* Policy Link */}
+                                        <div className="text-center">
+                                            <a href="#modification-policy" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-primary-500 transition-colors border-b border-dashed border-transparent hover:border-primary-300 pb-0.5">
+                                                <BookOpen className="w-3 h-3" />
+                                                <span>定制须知 & 修改权益</span>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                              )}

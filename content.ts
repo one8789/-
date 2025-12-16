@@ -1,4 +1,5 @@
 
+
 import { Product, NavItem, ShowcaseItem, DecorationPackage } from './types';
 
 // =================================================================
@@ -402,8 +403,37 @@ export const GALLERY_CATEGORIES = [
 ];
 
 export const GALLERY_PRODUCTS: Product[] = [
-  { id: '001', archiveId: 'N°001', category: 'luxury', codeName: '苍蓝视界·无下限', title: '角色印象·极致华丽款', description: '采用多层蓝紫色系叠加，还原“赫”与“苍”碰撞的瞬间。', fullDescription: '这是为“诞生祭”特别定制的礼物。灵感来源于最强咒术师的无下限术式。\n\n我们在流沙层中使用了极其稀有的进口变色龙粉，在不同角度下呈现出从苍蓝到紫红的渐变，模拟咒力流动的轨迹。背景采用了复杂的教堂窗花镭射工艺，象征着神性与人性的交织。', imageUrl: 'https://picsum.photos/600/800?random=1', galleryImages: ['https://picsum.photos/600/600?random=101', 'https://picsum.photos/600/600?random=102'], tags: ['高难定制', '角色印象', '华丽风'], craftParams: { size: '10x15cm (记忆珍藏版)', time: '14天', techniques: ['多层悬浮滴胶', '进口变色龙粉', '镭射雕刻', '手工打磨'] }, isNew: true },
-  { "id": "002", "archiveId": "N°002", "category": "atmosphere", "codeName": "森之语·鹿遇星光", "title": "角色印象·绮梦幻想", "description": "灵感源于森之少女与星辰的邂逅，将鹿灵的纯真与夜光的梦幻凝于一方天地。", "fullDescription": "核心创作理念源自那位自森林深处走来的鹿灵少女。为还原其空灵与自然的双重气质，本作采用了精巧的双层流麻结构，构筑出景深分明的视觉空间。\n\n主体视觉由浅粉色的基底与内嵌的白色夜光材质构成，在日间呈现温婉的少女感，于暗处则散发出林间萤火般的微光。前景悬浮着剔透的花瓣亮片，随着晃动缓缓飘落，动态模拟了角色登场时落英繽紛的场景。外层更辅以多层次的立体拼贴工艺，巴洛克风格的树脂花与金色锆石链条交错，象征着自然野性与文明饰品的碰撞融合，为整体的梦幻感增添一丝华丽注脚。", "imageUrl": "https://i.postimg.cc/V656bkdr/001.png", "galleryImages": [ "https://i.postimg.cc/bYRPj2Lr/ezgif-1e8507e0015c5ff7.gif", "https://s41.ax1x.com/2025/12/10/pZusdoj.png" ], "tags": ["IP联名", "绮丽幻想", "立体工艺"], "craftParams": { "size": "7.5x13cm", "time": "约12天", "techniques": ["双层景深流麻", "夜光材质注入", "多层立体拼贴", "巴洛克风格雕花", "锆石金链镶嵌"] } },
+  { 
+    id: '001', 
+    archiveId: 'N°001', 
+    category: 'luxury', 
+    codeName: '苍蓝视界·无下限', 
+    title: '角色印象·极致华丽款', 
+    description: '采用多层蓝紫色系叠加，还原“赫”与“苍”碰撞的瞬间。', 
+    fullDescription: '这是为“诞生祭”特别定制的礼物。灵感来源于最强咒术师的无下限术式。\n\n我们在流沙层中使用了极其稀有的进口变色龙粉，在不同角度下呈现出从苍蓝到紫红的渐变，模拟咒力流动的轨迹。背景采用了复杂的教堂窗花镭射工艺，象征着神性与人性的交织。', 
+    imageUrl: 'https://picsum.photos/600/800?random=1', 
+    galleryImages: ['https://picsum.photos/600/600?random=101', 'https://picsum.photos/600/600?random=102'], 
+    tags: ['高难定制', '角色印象', '华丽风'], 
+    craftParams: { size: '10x15cm (记忆珍藏版)', time: '14天', techniques: ['多层悬浮滴胶', '进口变色龙粉', '镭射雕刻', '手工打磨'] }, 
+    isNew: true,
+    // Add preset for this item
+    presetConfig: {
+      sizeName: '记忆珍藏版',
+      fluidDesc: '复刻 N°001 苍蓝视界配色',
+      decorationMode: 'custom',
+      addonNames: ['双层流麻', '反光工艺', '巴洛克堆叠'],
+      estimatedPrice: 88
+    }
+  },
+  { "id": "002", "archiveId": "N°002", "category": "atmosphere", "codeName": "森之语·鹿遇星光", "title": "角色印象·绮梦幻想", "description": "灵感源于森之少女与星辰的邂逅，将鹿灵的纯真与夜光的梦幻凝于一方天地。", "fullDescription": "核心创作理念源自那位自森林深处走来的鹿灵少女。为还原其空灵与自然的双重气质，本作采用了精巧的双层流麻结构，构筑出景深分明的视觉空间。\n\n主体视觉由浅粉色的基底与内嵌的白色夜光材质构成，在日间呈现温婉的少女感，于暗处则散发出林间萤火般的微光。前景悬浮着剔透的花瓣亮片，随着晃动缓缓飘落，动态模拟了角色登场时落英繽紛的场景。外层更辅以多层次的立体拼贴工艺，巴洛克风格的树脂花与金色锆石链条交错，象征着自然野性与文明饰品的碰撞融合，为整体的梦幻感增添一丝华丽注脚。", "imageUrl": "https://i.postimg.cc/V656bkdr/001.png", "galleryImages": [ "https://i.postimg.cc/bYRPj2Lr/ezgif-1e8507e0015c5ff7.gif", "https://s41.ax1x.com/2025/12/10/pZusdoj.png" ], "tags": ["IP联名", "绮丽幻想", "立体工艺"], "craftParams": { "size": "7.5x13cm", "time": "约12天", "techniques": ["双层景深流麻", "夜光材质注入", "多层立体拼贴", "巴洛克风格雕花", "锆石金链镶嵌"] },
+    presetConfig: {
+      sizeName: '手机伴侣款',
+      fluidDesc: '复刻 N°002 森之语',
+      decorationMode: 'custom',
+      addonNames: ['双层流麻', '夜光效果', '立体拼贴'],
+      estimatedPrice: 95
+    }
+  },
   { "id": "118", "archiveId": "N°118", "category": "luxury", "codeName": "虚空蝶梦·倾奇者", "title": "角色印象·绮罗典藏", "description": "以巴洛克式华丽重构散兵的孤傲与蜕变，于反光工艺中捕捉他那撕裂宿命的瞬间。", "fullDescription": "用具象化的艺术语言，去诠释他从人偶到‘倾奇者’身份的流转与挣扎。为还原其破碎又华丽的美学，本作采用了复合背景反光工艺，以此来动态模拟其周身散逸的元素能量。主体视觉由深邃的紫色调构成，立体拼贴的彩窗蝴蝶象征着挣脱束缚的灵魂，而精巧的巴洛克树脂花则暗喻其出身的高贵与被扭曲的命运。边缘环绕的紫色碎钻，不仅构建出丰富的视觉深度，更是在每一次光线流转中，折射出角色内心的矛盾与锋芒。", "imageUrl": "https://i.ibb.co/vCRrPzGD/003.png", "galleryImages": [ "https://picsum.photos/600/600?random=501", "https://picsum.photos/600/600?random=237" ], "tags": ["巴洛克幻想", "角色印象", "反光工艺"], "craftParams": { "size": "10x15cm", "time": "约15-20天","techniques": ["背景反光复合工艺", "立体彩窗蝴蝶拼贴", "巴洛克树脂花艺", "手工碎钻围边镶嵌"] } },
   { id: '004', archiveId: 'N°004', category: 'special', codeName: '星轨·夜行', title: '特殊工艺款', description: '异形切割边框，内置夜光星图，熄灯后的另一个世界。', fullDescription: '这是对技术的一次挑战。\n\n外框不再是传统的长方形，而是根据星轨走向进行了不规则的异形切割。流沙中混合了长效夜光沙，吸光30分钟后，能在黑暗中持续发光2小时。仿佛将一片星空装进了口袋。', imageUrl: 'https://picsum.photos/600/800?random=4', galleryImages: ['https://picsum.photos/600/600?random=401', 'https://picsum.photos/600/600?random=402'], tags: ['特殊工艺', '异形定制', '夜光效果'], craftParams: { size: '12x12cm (异形)', time: '20天', techniques: ['异形激光切割', '夜光沙填充', '双面观赏'] } }
 ];
