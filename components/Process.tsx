@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Ruler, Palette, Wand2, Layers, 
   Hammer, Zap, Sun, Gem, Scissors, 
-  Fingerprint, Eye, Sparkles, Moon, Coffee, Star, X, AlertTriangle, Truck, Camera, HelpCircle, Package, Check, ChevronDown, ZoomIn, Heart, Info, Circle, Send, ArrowRight, ArrowLeft, RefreshCcw, Layout, ShoppingCart, Clock, AlertCircle, Calendar, Gift, BookOpen
+  Fingerprint, Eye, Sparkles, Moon, Coffee, Star, X, AlertTriangle, Truck, Camera, HelpCircle, Package, Check, ChevronDown, ZoomIn, Heart, Info, Circle, Send, ArrowRight, ArrowLeft, RefreshCcw, Layout, ShoppingCart, Clock, AlertCircle, Calendar, Gift, BookOpen, Hourglass, PartyPopper
 } from 'lucide-react';
 import { PROCESS_CONTENT, SITE_STATUS, FULFILLMENT_CONTENT, CONSULTATION_CONTENT, SELF_WILL_MATERIALS, WISH_MODAL_CONTENT } from '../content';
 import { useOrder, FluidSelection } from '../contexts/OrderContext';
@@ -38,7 +38,7 @@ const Process: React.FC = () => {
   const { 
     selectedSize, selectedFluid, selectedDecorationPackage, selectedAddons, selectedRush, selectedPackaging,
     selectSize, selectFluid, selectDecorationPackage, toggleAddon, removeAddon, clearAddons, selectRush, selectPackaging,
-    decorationMode, setDecorationMode,
+    decorationMode, setDecorationMode, setDecorationNote, decorationNote,
     setConsultationMode, consultationMode, toggleModal
   } = useOrder();
 
@@ -56,14 +56,17 @@ const Process: React.FC = () => {
   const [customMaterials, setCustomMaterials] = useState<Array<{id: string, name: string, img: string}>>([]);
   const [expandFluidCategory, setExpandFluidCategory] = useState<string | null>('base');
   
-  // Blind Box Wish Logic
+  // Wish Modal (Small Size Benefit)
   const [showWishModal, setShowWishModal] = useState(false);
-  const [wishModalStep, setWishModalStep] = useState<'options' | 'blindbox'>('options');
   const [showDiyNotice, setShowDiyNotice] = useState(false);
-  const [blindboxStyleTags, setBlindboxStyleTags] = useState<string[]>([]);
-  const [blindboxStyleInput, setBlindboxStyleInput] = useState('');
-  const [blindboxTabooInput, setBlindboxTabooInput] = useState('');
-  const [blindboxError, setBlindboxError] = useState('');
+
+  // Package Preference Modal (Step 4)
+  const [showPackagePrefModal, setShowPackagePrefModal] = useState(false);
+  const [tempSelectedPkg, setTempSelectedPkg] = useState<any>(null); // Temp hold selection before confirming prefs
+  const [prefStyleTags, setPrefStyleTags] = useState<string[]>([]);
+  const [prefStyleInput, setPrefStyleInput] = useState('');
+  const [prefTabooInput, setPrefTabooInput] = useState('');
+  const [prefError, setPrefError] = useState('');
 
   const { isBusy } = SITE_STATUS;
   const content = PROCESS_CONTENT;
@@ -71,8 +74,41 @@ const Process: React.FC = () => {
   // Effects
   useEffect(() => {
     // Restore state from context if available
-    if (selectedFluid?.strategyId === 'buddha' && selectedFluid.note) setBuddhaInput(selectedFluid.note);
+    if (selectedFluid?.strategyId === 'buddha' && selectedFluid.note) {
+        setBuddhaInput(selectedFluid.note);
+    }
+    // Restore Custom Materials selection from Context
+    else if (selectedFluid?.strategyId === 'self' && selectedFluid.materials) {
+        const allMats = Object.values(SELF_WILL_MATERIALS).flat();
+        // Map names back to objects
+        const restored = selectedFluid.materials.map(name => allMats.find(m => m.name === name)).filter(Boolean) as typeof customMaterials;
+        
+        // Compare to avoid infinite loop
+        const currentIds = customMaterials.map(m => m.id).sort().join(',');
+        const newIds = restored.map(m => m.id).sort().join(',');
+        
+        if (currentIds !== newIds) {
+            setCustomMaterials(restored);
+        }
+    }
   }, [selectedFluid]);
+
+  // Auto-hide DIY Notice after 3 seconds
+  useEffect(() => {
+    if (showDiyNotice) {
+      const timer = setTimeout(() => setShowDiyNotice(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showDiyNotice]);
+
+  // Restore package preferences if editing
+  useEffect(() => {
+     if (decorationNote) {
+         // This is a rough restore logic, assumes format "风格:x,x, 避雷:y"
+         // For now, we leave inputs blank or could parse it if needed.
+         // Let's just keep them distinct for simplicity in this version.
+     }
+  }, [decorationNote]);
 
   // Sync rush state with toggle
   useEffect(() => {
@@ -233,6 +269,43 @@ const Process: React.FC = () => {
     }
   };
 
+  // New Handler for Package Click -> Open Modal
+  const handlePackageClick = (pkg: any) => {
+      setTempSelectedPkg(pkg);
+      // Reset form or load existing note if same package selected?
+      // For simplicity, reset or keep current state.
+      setShowPackagePrefModal(true);
+  };
+
+  const confirmPackagePref = () => {
+      if (!prefTabooInput.trim()) {
+          setPrefError('必填');
+          return;
+      }
+      const note = `风格:${prefStyleTags.join(',')}${prefStyleInput ? `(${prefStyleInput})` : ''}, 避雷:${prefTabooInput}`;
+      
+      selectDecorationPackage(tempSelectedPkg);
+      setDecorationNote(note);
+      
+      setShowPackagePrefModal(false);
+      setTimeout(advanceStep, 300);
+  };
+  
+  // Handler for Small Size Benefit Option 1 (Free Light Decoration)
+  const handleWishFreeLight = () => {
+      // 1. Set mode to package
+      setDecorationMode('package');
+      // 2. Find light package
+      const lightPkg = content.packages.find(p => p.id === 'light');
+      if (lightPkg) {
+          // Pre-select it
+          setTempSelectedPkg(lightPkg);
+          // Open the preference modal immediately
+          setShowPackagePrefModal(true);
+      }
+      setShowWishModal(false);
+  };
+
   // Helper to get image lightbox
   const openLightbox = (src: string) => {
      setLightboxSrc(src);
@@ -251,6 +324,12 @@ const Process: React.FC = () => {
 
        <div className="container mx-auto px-4 md:px-6 relative z-10">
           <div className="text-center mb-10">
+            {content.badge && (
+               <div className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-1.5 rounded-full text-xs md:text-sm font-bold mb-4 shadow-lg shadow-red-200 animate-bounce">
+                  <PartyPopper className="w-4 h-4" />
+                  <span>{content.badge}</span>
+               </div>
+            )}
             <h2 className="text-3xl font-bold text-gray-800 mb-3">{content.sectionTitle}<span className="text-primary-400 font-light ml-2 text-2xl">{content.sectionSubtitle}</span></h2>
             <p className="text-gray-500">{content.intro}</p>
           </div>
@@ -396,20 +475,52 @@ const Process: React.FC = () => {
                                          <span className="text-2xl">🎮</span>
                                          <div>
                                             <div className="font-bold text-gray-800">任性玩 (高玩)</div>
-                                            <div className="text-xs text-gray-500">自己指定配方，最多选5种。</div>
+                                            <div className="text-xs text-gray-500">自己指定配方，不限数量（建议5种内）。</div>
                                          </div>
                                          {selectedFluid?.strategyId === 'self' && <Check className="w-5 h-5 text-primary-500 ml-auto" />}
                                       </div>
                                       
                                       {/* Material Selection UI */}
                                       <div className="bg-gray-50 rounded-lg p-3">
-                                         <div className="flex gap-2 mb-3 overflow-x-auto pb-2 no-scrollbar">
-                                            {[0, 1, 2, 3, 4].map(i => (
-                                               <div key={i} className="w-8 h-8 rounded-full border border-dashed border-gray-300 bg-white flex items-center justify-center shrink-0 overflow-hidden">
-                                                  {customMaterials[i] ? <img src={customMaterials[i].img} className="w-full h-full object-cover"/> : <span className="text-gray-300 text-xs">{i+1}</span>}
-                                               </div>
-                                            ))}
-                                            <div className="text-xs text-gray-400 flex items-center">已选: {customMaterials.length}/5</div>
+                                         <div className="flex flex-col gap-2 mb-3">
+                                            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar items-center">
+                                                {Array.from({ length: Math.max(5, customMaterials.length) }).map((_, i) => (
+                                                <div key={i} className="w-8 h-8 rounded-full border border-dashed border-gray-300 bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300 relative group">
+                                                    {customMaterials[i] ? (
+                                                        <>
+                                                        <img src={customMaterials[i].img} className="w-full h-full object-cover"/>
+                                                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <span className="text-[8px] text-white font-mono font-bold">{customMaterials[i].name.split(' ')[0]}</span>
+                                                        </div>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-gray-300 text-xs">{i+1}</span>
+                                                    )}
+                                                </div>
+                                                ))}
+                                                <div className={`text-xs flex items-center whitespace-nowrap transition-colors duration-500 font-bold ml-1 ${
+                                                    customMaterials.length >= 7 ? 'text-red-600' :
+                                                    customMaterials.length === 6 ? 'text-orange-600' :
+                                                    customMaterials.length === 5 ? 'text-orange-500' :
+                                                    'text-gray-400 font-normal'
+                                                }`}>
+                                                    已选: {customMaterials.length}/5
+                                                </div>
+                                            </div>
+
+                                            {/* Suggestion Message */}
+                                            {customMaterials.length >= 5 && (
+                                                <div className={`text-xs p-3 rounded-lg border transition-all duration-500 animate-fade-in ${
+                                                    customMaterials.length >= 7 ? 'bg-red-50 border-red-100 text-red-800' : 'bg-orange-50 border-orange-100 text-orange-800'
+                                                }`}>
+                                                    <div className="font-bold mb-1 flex items-center gap-1">
+                                                        🐺 小狼的创作建议：
+                                                    </div>
+                                                    <div className="opacity-90 leading-relaxed">
+                                                        材料超过五种，可能会让背景的美感被些许遮盖哦。但如果你胸有成竹，请尽管突破界限，去创造属于你的华丽星河吧！
+                                                    </div>
+                                                </div>
+                                            )}
                                          </div>
                                          
                                          {/* Categories Accordion */}
@@ -427,21 +538,46 @@ const Process: React.FC = () => {
                                                      <div className="grid grid-cols-4 gap-2 mt-2">
                                                         {mats.map(m => {
                                                            const isSelected = customMaterials.some(cm => cm.id === m.id);
+                                                           // Extract the number (e.g. "01") from the name "01 银色细闪"
+                                                           const materialNumber = m.name.split(' ')[0];
+                                                           
                                                            return (
                                                               <div 
                                                                  key={m.id} 
                                                                  onClick={() => {
                                                                     setCustomMaterials(prev => {
                                                                        const exists = prev.find(p => p.id === m.id);
-                                                                       const next = exists ? prev.filter(p => p.id !== m.id) : (prev.length < 5 ? [...prev, m] : prev);
-                                                                       if (selectedFluid?.strategyId === 'self') selectFluid({ strategyId: 'self', strategyTitle: '任性玩', description: '自选材料', materials: next.map(x => x.name) });
+                                                                       // Modified logic: Allow unselect, or append without limit
+                                                                       const next = exists ? prev.filter(p => p.id !== m.id) : [...prev, m];
+                                                                       
+                                                                       // Force select 'self' strategy on interaction
+                                                                       selectFluid({ 
+                                                                           strategyId: 'self', 
+                                                                           strategyTitle: '任性玩', 
+                                                                           description: '自选材料', 
+                                                                           materials: next.map(x => x.name) 
+                                                                       });
+                                                                       
                                                                        return next;
                                                                     });
                                                                  }}
-                                                                 className={`aspect-square rounded border relative overflow-hidden cursor-pointer ${isSelected ? 'border-primary-500 ring-2 ring-primary-100' : 'border-gray-200'}`}
+                                                                 className={`aspect-square rounded-xl border relative overflow-hidden cursor-pointer transition-all duration-300 group ${isSelected ? 'border-primary-500 ring-2 ring-primary-100 scale-95 shadow-inner' : 'border-gray-200 hover:border-gray-300'}`}
                                                               >
-                                                                 <img src={m.img} className="w-full h-full object-cover" />
-                                                                 {isSelected && <div className="absolute inset-0 bg-primary-500/20 flex items-center justify-center"><Check className="w-5 h-5 text-white shadow" /></div>}
+                                                                 <img src={m.img} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                                 
+                                                                 {/* Hotspot Number Badge */}
+                                                                 <div className="absolute top-1 left-1 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-white/20 shadow-sm z-10 font-mono">
+                                                                     {materialNumber}
+                                                                 </div>
+
+                                                                 {/* Selected Overlay - Stronger visual cue */}
+                                                                 {isSelected && (
+                                                                     <div className="absolute inset-0 bg-primary-500/40 flex items-center justify-center backdrop-blur-[1px] z-20 animate-fade-in">
+                                                                         <div className="bg-white text-primary-500 rounded-full p-1 shadow-lg transform scale-100 transition-transform">
+                                                                             <Check className="w-4 h-4 stroke-[3]" />
+                                                                         </div>
+                                                                     </div>
+                                                                 )}
                                                               </div>
                                                            )
                                                         })}
@@ -496,7 +632,7 @@ const Process: React.FC = () => {
                                    {content.packages.map((pkg) => (
                                       <button 
                                          key={pkg.id}
-                                         onClick={() => { selectDecorationPackage(pkg as any); }}
+                                         onClick={() => handlePackageClick(pkg)}
                                          className={`w-full text-left p-4 rounded-xl border-2 transition-all ${selectedDecorationPackage?.id === pkg.id ? 'border-primary-500 bg-primary-50 shadow-md' : 'border-gray-200 hover:border-gray-300'}`}
                                       >
                                          <div className="flex justify-between items-center mb-2">
@@ -517,15 +653,6 @@ const Process: React.FC = () => {
                                       <p className="text-xs text-gray-400 text-center mb-4">
                                          * 装饰方案为整体设计密度，不逐项选择材料。特殊结构设计将单独确认。
                                       </p>
-                                   </div>
-                                   
-                                   <div className="mt-4 flex justify-end">
-                                      <button 
-                                         onClick={advanceStep}
-                                         className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold bg-gray-900 text-white hover:bg-black transition-colors shadow-md"
-                                      >
-                                         下一步 <ArrowRight className="w-4 h-4"/>
-                                      </button>
                                    </div>
                                 </div>
                              )}
@@ -597,6 +724,19 @@ const Process: React.FC = () => {
                              {step.id === 'fulfillment' && (
                                 <div className="space-y-8">
                                     
+                                    {/* NEW: Production Cycle & Cancellation Policy */}
+                                    <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 text-sm leading-relaxed space-y-3">
+                                        <div className="flex items-center gap-2 font-bold text-gray-800">
+                                            <Hourglass className="w-4 h-4 text-gray-500" />
+                                            {FULFILLMENT_CONTENT.production.title}
+                                        </div>
+                                        <p className="text-gray-600">{FULFILLMENT_CONTENT.production.cycle}</p>
+                                        <div className="flex items-start gap-2 bg-red-50 p-3 rounded-lg text-red-600 text-xs border border-red-100">
+                                            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                                            <p>{FULFILLMENT_CONTENT.production.cancellation}</p>
+                                        </div>
+                                    </div>
+
                                     {/* 1. Production Mode Toggle */}
                                     <div className="space-y-4">
                                         <div className="text-sm font-bold text-gray-800 flex items-center gap-2">
@@ -629,7 +769,7 @@ const Process: React.FC = () => {
                                                     <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center text-xl shrink-0">🚀</div>
                                                     <div>
                                                         <div className="font-bold text-gray-800">想要心意极速送达</div>
-                                                        <div className="text-xs text-gray-500">工期约 3-7 天，优先排单制作。</div>
+                                                        <div className="text-xs text-gray-500">工期约 1-7 天，优先排单制作。</div>
                                                     </div>
                                                     {productionMode === 'rush' && <Check className="w-5 h-5 text-orange-500 ml-auto" />}
                                                 </div>
@@ -758,19 +898,55 @@ const Process: React.FC = () => {
           </div>
        </div>
 
-       {/* Blind Box Modal */}
+       {/* Blind Box Modal -> Now: Package Preference Form */}
+       {showPackagePrefModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowPackagePrefModal(false)}>
+            <div className="bg-white rounded-[2rem] max-w-md w-full p-8 relative animate-scale-up" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowPackagePrefModal(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 z-20"><X className="w-6 h-6" /></button>
+              
+              <div className="animate-fade-in">
+                  <h3 className="text-xl font-bold text-center text-gray-800 mb-2">{WISH_MODAL_CONTENT.packagePrefForm.title}</h3>
+                  <p className="text-center text-xs text-gray-500 mb-6">{WISH_MODAL_CONTENT.packagePrefForm.intro}</p>
+                  
+                  <div className="space-y-5">
+                    <div>
+                      <label className="text-sm font-bold text-gray-700 block mb-2">{WISH_MODAL_CONTENT.packagePrefForm.style.label}</label>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {WISH_MODAL_CONTENT.packagePrefForm.style.tags.map(tag => (
+                          <button key={tag} onClick={() => setPrefStyleTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])} className={`px-3 py-1 text-xs rounded-full border transition-colors ${prefStyleTags.includes(tag) ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}>{tag}</button>
+                        ))}
+                      </div>
+                      <input type="text" value={prefStyleInput} onChange={(e) => setPrefStyleInput(e.target.value)} placeholder={WISH_MODAL_CONTENT.packagePrefForm.style.placeholder} className="w-full bg-gray-50 border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-primary-300 focus:border-primary-300" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-bold text-gray-700 block mb-2">{WISH_MODAL_CONTENT.packagePrefForm.taboo.label} <span className="text-red-500">*</span></label>
+                      <input type="text" value={prefTabooInput} onChange={(e) => { setPrefTabooInput(e.target.value); setPrefError(''); }} placeholder={WISH_MODAL_CONTENT.packagePrefForm.taboo.placeholder} className="w-full bg-gray-50 border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-primary-300 focus:border-primary-300" />
+                      {prefError && <p className="text-red-500 text-xs mt-1">{prefError}</p>}
+                    </div>
+                    <button 
+                       onClick={confirmPackagePref} 
+                       className="w-full bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Send className="w-4 h-4" /> {WISH_MODAL_CONTENT.packagePrefForm.button}
+                    </button>
+                  </div>
+              </div>
+            </div>
+          </div>
+       )}
+
+       {/* Wish Modal (Small Size Benefits) */}
        {showWishModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowWishModal(false)}>
             <div className="bg-white rounded-[2rem] max-w-md w-full p-8 relative animate-scale-up" onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowWishModal(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 z-20"><X className="w-6 h-6" /></button>
               
-              {wishModalStep === 'options' && (
-                <div className="text-center">
+              <div className="text-center">
                   <div className="w-16 h-16 bg-yellow-100 text-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-spin-slow"><Star className="w-8 h-8 fill-current" /></div>
                   <h3 className="text-2xl font-bold text-gray-800 mb-2">{WISH_MODAL_CONTENT.title}</h3>
                   <p className="text-gray-500 text-sm mb-6 leading-relaxed">{WISH_MODAL_CONTENT.intro}</p>
                   <div className="space-y-3">
-                    <button onClick={() => setWishModalStep('blindbox')} className="w-full text-left p-4 rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all group">
+                    <button onClick={handleWishFreeLight} className="w-full text-left p-4 rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all group">
                       <h4 className="font-bold text-gray-800 text-base">{WISH_MODAL_CONTENT.options[0].title}</h4>
                       <p className="text-xs text-gray-500">{WISH_MODAL_CONTENT.options[0].desc}</p>
                     </button>
@@ -779,45 +955,10 @@ const Process: React.FC = () => {
                       <p className="text-xs text-gray-500">{WISH_MODAL_CONTENT.options[1].desc}</p>
                     </button>
                   </div>
-                </div>
-              )}
-
-              {wishModalStep === 'blindbox' && (
-                <div className="animate-fade-in">
-                  <h3 className="text-xl font-bold text-center text-gray-800 mb-6">{WISH_MODAL_CONTENT.blindboxForm.title}</h3>
-                  <div className="space-y-5">
-                    <div>
-                      <label className="text-sm font-bold text-gray-700 block mb-2">{WISH_MODAL_CONTENT.blindboxForm.style.label}</label>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {WISH_MODAL_CONTENT.blindboxForm.style.tags.map(tag => (
-                          <button key={tag} onClick={() => setBlindboxStyleTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])} className={`px-3 py-1 text-xs rounded-full border transition-colors ${blindboxStyleTags.includes(tag) ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}>{tag}</button>
-                        ))}
-                      </div>
-                      <input type="text" value={blindboxStyleInput} onChange={(e) => setBlindboxStyleInput(e.target.value)} placeholder={WISH_MODAL_CONTENT.blindboxForm.style.placeholder} className="w-full bg-gray-50 border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-primary-300 focus:border-primary-300" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-bold text-gray-700 block mb-2">{WISH_MODAL_CONTENT.blindboxForm.taboo.label} <span className="text-red-500">*</span></label>
-                      <input type="text" value={blindboxTabooInput} onChange={(e) => setBlindboxTabooInput(e.target.value)} placeholder={WISH_MODAL_CONTENT.blindboxForm.taboo.placeholder} className="w-full bg-gray-50 border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-primary-300 focus:border-primary-300" />
-                      {blindboxError && <p className="text-red-500 text-xs mt-1">{blindboxError}</p>}
-                    </div>
-                    <button 
-                       onClick={() => {
-                          if (!blindboxTabooInput.trim()) { setBlindboxError('必填'); return; }
-                          const note = `【盲盒】风格:${blindboxStyleTags.join(',')}${blindboxStyleInput}, 避雷:${blindboxTabooInput}`;
-                          selectFluid({ strategyId: 'blindbox', strategyTitle: '随心盲盒', description: note });
-                          setShowWishModal(false);
-                          setTimeout(advanceStep, 300);
-                       }} 
-                       className="w-full bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Send className="w-4 h-4" /> {WISH_MODAL_CONTENT.blindboxForm.button}
-                    </button>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           </div>
-        )}
+       )}
     </section>
   );
 };

@@ -1,9 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Process from './components/Process';
 import Gallery from './components/Gallery';
-import Benefits from './components/Benefits';
 import Footer from './components/Footer';
 import ParticleBackground from './components/ParticleBackground';
 import ClickSparkle from './components/ClickSparkle';
@@ -41,7 +41,6 @@ function App() {
               <main className="relative z-10">
                 <Hero />
                 <Gallery />
-                <Benefits />
                 <Process />
                 <ModificationPolicy />
                 <Showcase />

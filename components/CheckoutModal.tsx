@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Copy, CheckCircle, Tag, AlertCircle, Sparkles, Send, Calculator, Trash2, ChevronDown, ShieldAlert, Lock, Unlock, Video, MessageCircle, ShoppingBag, ExternalLink, ArrowRight, Store, HeartHandshake, Clock, QrCode, Palette, Shield, Star, Trophy } from 'lucide-react';
+import { X, Copy, CheckCircle, Tag, AlertCircle, Sparkles, Send, Calculator, Trash2, ChevronDown, ShieldAlert, Lock, Unlock, Video, MessageCircle, ShoppingBag, ExternalLink, ArrowRight, Store, HeartHandshake, Clock, QrCode, Palette, Shield, Star, Trophy, Scan } from 'lucide-react';
 import { useOrder } from '../contexts/OrderContext';
 import { CONSULTATION_CONTENT, DISCLAIMER_CONTENT, CONTACT_INFO, CHECKOUT_CONTENT, SITE_STATUS } from '../content';
 
@@ -81,7 +81,7 @@ const CheckoutModal: React.FC = () => {
   const { 
     isModalOpen, toggleModal, 
     selectedSize, selectedAddons, selectedRush, selectedPackaging, selectedFluid,
-    decorationMode, selectedDecorationPackage,
+    decorationMode, selectedDecorationPackage, decorationNote,
     appliedDiscounts, addDiscount, removeDiscount, discountNotification, clearNotification,
     breakdown, finalPrice, 
     consultationMode, setConsultationMode, removeAddon
@@ -176,6 +176,9 @@ const CheckoutModal: React.FC = () => {
       // Decoration Logic
       if (decorationMode === 'package' && selectedDecorationPackage) {
          text += `${T.craft} 套餐 · ${selectedDecorationPackage.name} (${selectedDecorationPackage.price}r)\n`;
+         if (decorationNote) {
+             text += `  [${decorationNote}]\n`;
+         }
       } else {
          // Filter items
          const structureItems = selectedAddons.filter(a => a.category === 'Structure');
@@ -233,6 +236,13 @@ const CheckoutModal: React.FC = () => {
     });
   };
 
+  const handleCopyWeChat = () => {
+    const wxId = CONSULTATION_CONTENT.card.id.split(': ')[1] || 'xiaolangSLE';
+    navigator.clipboard.writeText(wxId);
+    setShowCopyToast(true);
+    setTimeout(() => setShowCopyToast(false), 2000);
+  };
+
   const handleJumpToStarEcho = () => {
       toggleModal(false);
       const starEchoSection = document.getElementById('star-echo');
@@ -243,12 +253,48 @@ const CheckoutModal: React.FC = () => {
 
   const renderFluidDetails = () => {
     if (!selectedFluid) return null;
+    
     if (selectedFluid.strategyId === 'blindbox') {
       const parts = selectedFluid.description.split(' | ');
       const style = parts[0]?.replace('【风格】: ', '');
       const taboo = parts[1]?.replace('【避雷】: ', '');
       return (<div className="bg-purple-50 p-4 rounded-xl border border-purple-100"><div className="flex justify-between items-start"><div><div className="flex items-center gap-2 mb-2"><span className="text-xl">🎲</span><span className="font-bold text-gray-800 text-sm">随心盲盒配方</span></div><div className="text-xs space-y-1 pl-1"><p><span className="font-bold text-purple-700">心之所属:</span> {style}</p><p><span className="font-bold text-red-700">绝对禁区:</span> {taboo}</p></div></div><button onClick={() => { toggleModal(false); window.location.href='#process'; }} className="text-xs text-primary-500 hover:underline shrink-0 ml-2">修改</button></div></div>);
     }
+    
+    if (selectedFluid.strategyId === 'self') {
+        return (
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                 <div className="flex items-center gap-2 mb-3">
+                     <Palette className="w-4 h-4 text-primary-500" />
+                     <span className="font-bold text-gray-800 text-sm">{CHECKOUT_CONTENT.labels.fluidRecipe}</span>
+                 </div>
+                 
+                 <div className="flex justify-between items-start">
+                     <div className="flex-1">
+                        <div className="font-bold text-gray-800 text-sm mb-2">
+                            {selectedFluid.strategyTitle} <span className="text-gray-400 font-normal text-xs">- {selectedFluid.description}</span>
+                        </div>
+                        {selectedFluid.materials && selectedFluid.materials.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                                {selectedFluid.materials.map((mat, i) => (
+                                    <span key={i} className="inline-flex items-center px-2 py-1 rounded bg-white border border-gray-200 text-xs text-gray-600 font-medium shadow-sm">
+                                        <Tag className="w-3 h-3 mr-1 text-primary-400" />
+                                        {mat}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-xs text-gray-400 italic">暂无选择材料</div>
+                        )}
+                     </div>
+                     <button onClick={() => { toggleModal(false); window.location.href='#process'; }} className="text-xs text-primary-500 hover:underline shrink-0 ml-4 mt-1">
+                        修改
+                     </button>
+                 </div>
+            </div>
+        );
+    }
+
     return (<div className="bg-gray-50 p-4 rounded-xl border border-gray-100"><div className="flex items-center gap-2 mb-2"><Palette className="w-4 h-4 text-primary-500" /><span className="font-bold text-gray-800 text-sm">{CHECKOUT_CONTENT.labels.fluidRecipe}</span></div><div className="flex justify-between items-start text-sm"><div className="text-gray-600"><span className="font-medium text-gray-800">{selectedFluid.strategyTitle}</span>{selectedFluid.note && <div className="text-xs text-gray-500 mt-1 italic">"{selectedFluid.note}"</div>}{selectedFluid.materials && <div className="text-xs text-gray-500 mt-1">{selectedFluid.materials.join(' / ')}</div>}</div><button onClick={() => { toggleModal(false); window.location.href='#process'; }} className="text-xs text-primary-500 hover:underline shrink-0 ml-2">修改</button></div></div>);
   };
 
@@ -322,43 +368,71 @@ const CheckoutModal: React.FC = () => {
             </div>
             
             {consultationMode ? (
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-indigo-50/30">
-                    <div className="bg-white rounded-2xl shadow-sm border border-indigo-100 p-8 text-center max-w-2xl mx-auto">
-                         <div className="w-16 h-16 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <MessageCircle className="w-8 h-8" />
-                         </div>
-                         <h3 className="text-2xl font-bold text-gray-800 mb-4">{CONSULTATION_CONTENT.modal.headline}</h3>
-                         <div className="text-gray-600 text-sm leading-relaxed mb-8 space-y-2 text-left bg-gray-50 p-6 rounded-xl border border-gray-100">
-                            {CONSULTATION_CONTENT.modal.intro.map((line, i) => <p key={i}>{line}</p>)}
-                            <ul className="list-disc list-inside mt-2 space-y-1 font-bold text-gray-700">
-                                {CONSULTATION_CONTENT.modal.list.map((item, i) => <li key={i}>{item}</li>)}
-                            </ul>
-                         </div>
-                         
-                         {/* Contact Card */}
-                         <div className="bg-gray-800 text-white rounded-xl p-6 relative overflow-hidden group max-w-sm mx-auto shadow-xl">
-                            <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-indigo-500/20 to-transparent"></div>
-                            <div className="relative z-10 flex flex-col items-center">
-                                <div className="w-20 h-20 rounded-full border-4 border-gray-700 shadow-lg mb-3 overflow-hidden">
-                                   <img src={CONSULTATION_CONTENT.modal.card.avatar} alt="avatar" className="w-full h-full object-cover" />
-                                </div>
-                                <div className="text-lg font-bold">{CONSULTATION_CONTENT.modal.card.name}</div>
-                                <div className="text-xs text-indigo-300 uppercase tracking-widest mb-4">{CONSULTATION_CONTENT.modal.card.title}</div>
-                                <div className="bg-white/10 px-4 py-2 rounded-lg text-sm font-mono mb-4 backdrop-blur-sm border border-white/10">
-                                   {CONSULTATION_CONTENT.modal.card.id}
-                                </div>
-                                <div className="flex gap-2 w-full">
-                                    <button 
-                                      onClick={handlePrimaryAction}
-                                      className="flex-1 bg-white text-gray-900 font-bold py-2 rounded-lg text-sm hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2"
-                                    >
-                                       <Copy className="w-4 h-4" /> 复制需求单
-                                    </button>
-                                </div>
-                                <p className="text-[10px] text-gray-400 mt-4">{CONSULTATION_CONTENT.modal.ps}</p>
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-gray-50/30 flex flex-col items-center justify-center relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 pointer-events-none"></div>
+                    
+                    {/* DIGITAL BUSINESS CARD */}
+                    <div className="relative w-full max-w-sm bg-white rounded-[2rem] shadow-2xl border-4 border-white overflow-hidden group select-none hover:scale-[1.01] transition-transform duration-500">
+                        {/* Card Header / Cover */}
+                        <div className="h-32 bg-gradient-to-r from-indigo-500 to-purple-500 relative overflow-hidden">
+                           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
+                           <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full border-4 border-white overflow-hidden bg-white shadow-lg">
+                              <img src={CONSULTATION_CONTENT.card.avatar} alt="avatar" className="w-full h-full object-cover" />
+                           </div>
+                        </div>
+                        
+                        {/* Card Body */}
+                        <div className="pt-12 pb-8 px-6 text-center">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-1">{CONSULTATION_CONTENT.card.name}</h2>
+                            <p className="text-xs text-gray-400 mb-4">{CONSULTATION_CONTENT.card.caption}</p>
+                            
+                            <div className="flex flex-wrap gap-2 justify-center mb-6">
+                               {CONSULTATION_CONTENT.card.tags.map(tag => (
+                                 <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-500 text-[10px] rounded-full font-medium">
+                                   #{tag}
+                                 </span>
+                               ))}
                             </div>
-                         </div>
+                            
+                            {/* QR Code Container */}
+                            <div className="w-48 h-48 mx-auto bg-white p-2 rounded-xl shadow-inner border border-gray-100 mb-6 relative group-hover:shadow-lg transition-all">
+                                <img src={CONSULTATION_CONTENT.card.qrImage} alt="QR Code" className="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" />
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                   <div className="bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-800 opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0 duration-300 shadow-sm border border-gray-100">
+                                      Scan Me
+                                   </div>
+                                </div>
+                            </div>
+
+                            {/* Footer Actions */}
+                            <div className="bg-gray-50 rounded-xl p-3 flex items-center justify-between border border-gray-100">
+                                <div className="flex items-center gap-2">
+                                   <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white">
+                                      <MessageCircle className="w-4 h-4 fill-current" />
+                                   </div>
+                                   <div className="text-left">
+                                      <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">WeChat ID</div>
+                                      <div className="text-sm font-bold text-gray-800 leading-none">{CONSULTATION_CONTENT.card.id.split(': ')[1]}</div>
+                                   </div>
+                                </div>
+                                <button 
+                                  onClick={handleCopyWeChat}
+                                  className="bg-white hover:bg-gray-100 text-gray-600 border border-gray-200 p-2 rounded-lg transition-colors active:scale-95"
+                                  title="Copy ID"
+                                >
+                                   <Copy className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
                     </div>
+                    
+                    {/* Tip Below Card */}
+                    <div className="mt-6 text-center max-w-xs animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                       <p className="text-xs text-indigo-400 font-medium bg-indigo-50 px-3 py-1.5 rounded-full inline-block border border-indigo-100 shadow-sm">
+                          {CONSULTATION_CONTENT.tip}
+                       </p>
+                    </div>
+
                 </div>
             ) : (
                 <>
@@ -377,15 +451,22 @@ const CheckoutModal: React.FC = () => {
                             {/* DECORATION (Package or Custom) */}
                             {decorationMode === 'package' ? (
                                 selectedDecorationPackage && (
-                                <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-xl shadow-sm">✨</div>
-                                        <div>
-                                        <div className="font-bold text-gray-800">装饰套餐: {selectedDecorationPackage.name}</div>
-                                        <div className="text-xs text-gray-500">{selectedDecorationPackage.price}r</div>
+                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-xl shadow-sm">✨</div>
+                                            <div>
+                                            <div className="font-bold text-gray-800">装饰套餐: {selectedDecorationPackage.name}</div>
+                                            <div className="text-xs text-gray-500">{selectedDecorationPackage.price}r</div>
+                                            </div>
                                         </div>
+                                        <button onClick={() => { toggleModal(false); window.location.href='#process'; }} className="text-xs text-primary-500 hover:underline">修改</button>
                                     </div>
-                                    <button onClick={() => { toggleModal(false); window.location.href='#process'; }} className="text-xs text-primary-500 hover:underline">修改</button>
+                                    {decorationNote && (
+                                        <div className="mt-2 text-xs text-gray-500 bg-white/50 p-2 rounded border border-gray-100">
+                                            <span className="font-bold">备注:</span> {decorationNote}
+                                        </div>
+                                    )}
                                 </div>
                                 )
                             ) : (

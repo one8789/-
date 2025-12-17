@@ -1,6 +1,5 @@
 
-
-import { Product, NavItem, ShowcaseItem, DecorationPackage } from './types';
+import { Product, NavItem, ShowcaseItem } from './types';
 
 // =================================================================
 // ⚙️ 工坊状态设置 (Site Status)
@@ -12,7 +11,7 @@ export const SITE_STATUS = {
   // 'auto'     : 自动根据时间检测 (默认)
   // 'working'  : 强制设为 "营业中"
   // 'sleeping' : 强制设为 "休眠模式"
-  // 'weekend'  : 强制设为 "周末慢活" (例如：法定节假日时可手动设为周末模式)
+  // 'weekend'  : 强制设为 "周末慢活"
   forceStatus: 'auto' as 'auto' | 'working' | 'sleeping' | 'weekend',
 };
 
@@ -28,15 +27,18 @@ export const CONTACT_INFO = {
   platformLink: 'https://weidian.com/item.html?itemID=YOUR_ITEM_ID_HERE' // 微店等平台链接
 };
 
-// Updated Discount Codes for new logic
+// =================================================================
+// 💰 优惠与折扣 (Discounts)
+// =================================================================
 export const DISCOUNT_CODES = [
-  { code: 'WOLF', type: 'percent', value: 0.9, exclusive: true, label: '萌新见面礼', tag: 'OFFER' },
-  { code: 'VIP666', type: 'percent', value: 0.8, exclusive: true, label: '熟客尊享', tag: 'VIP' },
-  { code: 'NEW', type: 'percent', value: 0.7, exclusive: true, label: '限时超值折扣', tag: 'NEW' },
-  { code: 'MINUS5', type: 'fixed', value: 5, exclusive: false, label: '立减金', tag: 'COUPON' },
+  { code: 'WOLF', type: 'fixed', value: 5, exclusive: false, label: '萌新见面礼', tag: 'NEW' },
+  { code: 'ECHO20', type: 'fixed', value: 20, exclusive: true, label: '星辰回响·返图礼', tag: 'VIP' },
   { code: 'RICH', type: 'threshold', value: 50, threshold: 200, exclusive: false, label: '满200减50', tag: 'EVENT' }
 ];
 
+// =================================================================
+// 🛡️ 法律与免责 (Disclaimers)
+// =================================================================
 export const DISCLAIMER_CONTENT = {
   copyright: {
     title: "版权·免责护盾",
@@ -84,41 +86,29 @@ export const DISCLAIMER_CONTENT = {
   slideSuccessText: "契约已缔结 (Contract Sealed)"
 };
 
+// =================================================================
+// 📱 召唤工坊主 (Consultation / Business Card)
+// =================================================================
 export const CONSULTATION_CONTENT = {
-  title: "✨ 定制 / 求推荐",
-  desc: "不想做选择题？或者有张绝美的图想复刻？",
-  activeStatus: "当前模式: 深度定制咨询",
-  btnText: "直接召唤小狼",
-  copyTemplate: "[特殊委托] 客户申请深度定制/推荐服务，请接入人工咨询。",
-  modal: {
-    headline: "找到我，然后开启故事。",
-    intro: [
-      "很高兴你选择了【深度定制】。这意味着你不仅想要一件商品，更想要一份独一-的记忆。",
-      "由于定制的特殊性，我们需要进行一对一的详细沟通。请添加我的私人微信，我们可以讨论："
-    ],
-    list: [
-      "可行性评估 (能不能做)",
-      "排版与设计预览 (好不好看)",
-      "更精准的报价与工期 (多少钱/多久)"
-    ],
-    cta: "截屏保存微信→扫码添加，记得备注来意噢。",
-    ps: "P.S. 申请好友时请备注“流麻定制”，否则小狼可能会因为社恐而不敢通过哦...",
-    card: {
-      name: "小狼SLE",
-      title: "StarrySand 主理人",
-      caption: "扫码召唤工（摸）作（鱼）中的工坊主",
-      id: "WeChat: xiaolangSLE",
-      avatar: "https://i.pravatar.cc/150?u=wolf_avatar",
-      bgImage: "https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=2071&auto=format&fit=crop"
-    }
-  }
+  title: "✨ 召唤工坊主",
+  desc: "(与其说是客服，不如说是陪你一起脑洞大开的 NPC。)",
+  copyTemplate: "[特殊委托] 客户申请深度定制/推荐服务，请接入人工咨询。", // 保留用于兼容逻辑
+  card: {
+    name: "小狼SLE",
+    tags: ["StarrySand 主理人", "熬夜冠军", "并不社恐(大概)"],
+    caption: "扫描水晶，入侵信号频段",
+    id: "WeChat: xiaolangSLE",
+    qrImage: "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=xiaolangSLE&bgcolor=fff&color=e11d48", 
+    avatar: "https://i.pravatar.cc/150?u=wolf_avatar"
+  },
+  tip: "* 添加时若能备注“流麻”二字，通关速度 +100% 哦！"
 };
 
 export const LOADING_IMAGES = [
-  "https://i.postimg.cc/ZqCYbPjL/IMG_20251208_205434.jpg", // 替换为Q版小狼吃东西
-  "https://i.postimg.cc/CKzMhCJN/IMG-20251208-205410.jpg", // 替换为Q版小狼睡觉
-  "https://i.postimg.cc/YSh2rN8T/IMG_20251208_205540.jpg", // 替换为Q版小狼画画
-  "https://i.postimg.cc/QMHN8g0L/IMG_20251208_205615.jpg", // 替换为Q版小狼发呆
+  "https://i.postimg.cc/ZqCYbPjL/IMG_20251208_205434.jpg",
+  "https://i.postimg.cc/CKzMhCJN/IMG-20251208-205410.jpg",
+  "https://i.postimg.cc/YSh2rN8T/IMG_20251208_205540.jpg",
+  "https://i.postimg.cc/QMHN8g0L/IMG_20251208_205615.jpg",
 ];
 
 // =================================================================
@@ -128,7 +118,7 @@ export const NAV_CONTENT: NavItem[] = [
   { label: '作品档案', href: '#gallery' },
   { label: '定制契约', href: '#process' },
   { label: '星辰回响', href: '#star-echo' },
-  { label: '私域福利', href: CONTACT_INFO.officialAccountLink }, // Updated link
+  { label: '私域福利', href: CONTACT_INFO.officialAccountLink },
   { label: '召唤工坊主', href: '#', isButton: true, action: 'consult' },
 ];
 
@@ -155,10 +145,10 @@ export const HERO_CONTENT = {
 };
 
 // =================================================================
-// 🎨 定制流程 (Process Section) - NEW STRUCTURE
+// 🎨 定制流程 (Process Section)
 // =================================================================
 
-// Mock data for Self-Will Fluid Materials
+// "任性玩" 模式的具体材料库
 export const SELF_WILL_MATERIALS = {
   base: [
     { id: 'b01', name: '01 银色细闪', img: 'https://picsum.photos/seed/b01/100/100' },
@@ -184,6 +174,7 @@ export const SELF_WILL_MATERIALS = {
 };
 
 export const PROCESS_CONTENT = {
+  badge: "全场包邮 · 惊喜掉落",
   sectionTitle: "定制契约",
   sectionSubtitle: "/ Contract",
   intro: "一张张翻开你的专属契约，每一步都是一次缔结。",
@@ -197,15 +188,7 @@ export const PROCESS_CONTENT = {
   ],
   sizeNote: "* 最终价格会根据装饰的复杂程度有小幅浮动。小尺寸(随身/萌趣)享受装饰半价优惠。",
 
-  fluids: {
-    strategies: [
-      { id: 'buddha', title: '佛系选（推荐）', icon: '🧘', desc: '丢给我 3 个喜欢的颜色，或者描述一种氛围（如“梦幻蓝”），剩下的交给小狼调配。' },
-      { id: 'self', title: '任性玩（高玩）', icon: '🎮', desc: '自己指定混合方案！建议混搭不超过 5 种元素，以免遮挡背景美图。' },
-      { id: 'surprise', title: '开惊喜（盲盒）', icon: '🎁', desc: '授权我即兴创作！你的灵感就是最好的配方，说不定会诞生绝版限定款～' },
-    ],
-  },
-
-  // Path Selection
+  // Path Selection Cards
   paths: {
     title: "选择你的定制模式",
     a: {
@@ -226,7 +209,7 @@ export const PROCESS_CONTENT = {
     }
   },
 
-  // PATH A: Decoration Packages
+  // PATH A: Decoration Packages (套餐)
   packages: [
     { 
       id: 'light', 
@@ -251,7 +234,7 @@ export const PROCESS_CONTENT = {
     }
   ],
 
-  // PATH B: Custom Categories
+  // PATH B: Custom Categories (自选)
   customCategories: {
     structure: {
       title: "结构型选择 (需确认)",
@@ -260,7 +243,7 @@ export const PROCESS_CONTENT = {
         { name: "翻盖款", price: "+15r", priceNum: 15, desc: "像开门一样富有仪式感。外盖装饰，内层净版。", image: "https://picsum.photos/seed/door/300/200" },
         { name: "双层流麻", price: "基础价x2", priceNum: 0, multiplier: 2, desc: "空间折叠术。包含多层图+多层流沙，层次感极其丰富。", image: "https://picsum.photos/seed/double/300/200" },
         { name: "双色分仓", price: "+20r", priceNum: 20, desc: "将流麻分为两个仓室，左红右蓝，任你想象。", image: "https://picsum.photos/seed/split/300/200" },
-        { name: "异形切割", price: "+30r", priceNum: 30, desc: "打破矩形限制，根据画面边缘进行特殊切割。", image: "https://picsum.photos/seed/cut/300/200" },
+        { name: "异形切割", price: "+30r", priceNum: 30, desc: "打破矩形限制，根据星轨走向进行了不规则的异形切割。", image: "https://picsum.photos/seed/cut/300/200" },
       ]
     },
     enhancement: {
@@ -295,22 +278,23 @@ export const WISH_MODAL_CONTENT = {
   intro: "恭喜！你选择了“随身卡包级/萌趣挂件”，已触发免费的 星辰点缀 福利！",
   options: [
     {
-      id: "blindbox",
-      title: "🎲 随心盲盒 (FREE)",
-      desc: "完全信任小狼的审美！只给关键词，坐等开箱惊喜。"
+      id: "free_light",
+      title: "🎁 轻装饰套餐 (Free)",
+      desc: "完全免费！包含基础流沙与简约排版，立省 15r。"
     },
     {
-      id: "diy",
+      id: "diy_half",
       title: "✨ 自主调配模式 (半价特权)",
       desc: "我有想要的特定装饰/风格，想亲手参与搭配。"
     }
   ],
   diyNotice: "检测到更有主见的灵魂！小尺寸专属福利已激活：所有自选装饰自动半价！",
-  blindboxForm: {
-    title: "开启盲盒许愿池",
+  packagePrefForm: {
+    title: "魔法定向许愿单",
+    intro: "虽然是套餐，但小狼也想知道你的偏好。",
     style: {
       label: "心之所属 (风格)",
-      tags: ["#梦幻粉紫", "#暗黑哥特", "#清透夏日", "#复古油画"],
+      tags: ["#梦幻粉紫", "#暗黑哥特", "#清透夏日", "#复古油画", "#赛博朋克"],
       placeholder: "或输入自定义风格..."
     },
     taboo: {
@@ -318,7 +302,7 @@ export const WISH_MODAL_CONTENT = {
       placeholder: "例如：密集恐惧、蝴蝶、金色配件等",
       required: true
     },
-    button: "生成契约"
+    button: "确认并存入契约"
   }
 };
 
@@ -366,11 +350,7 @@ export const FULFILLMENT_CONTENT = {
   packaging: [
     { title: "【标准防护单元】", engName: "Standard Shield", tag: "Default / Free", desc: "安全第一！瓦楞纸飞机盒 + 加厚气泡缓冲层 + 硫酸纸防尘封印。确保流麻完好无损地穿越现实世界的颠簸。", image: "https://picsum.photos/400/300?grayscale&blur=2", isUpgrade: false, price: "0r", priceNum: 0, rawPrice: 0 },
     { title: "【星尘礼遇单元】", engName: "Stardust Gift Set", tag: "Upgrade (+15r)", desc: "送给TA（或自己）的惊喜。升级为硬质天地盖礼盒，内衬深空拉菲草，附赠【工坊收藏证书】及【专用养护布】。", image: "https://picsum.photos/400/300?random=gift", isUpgrade: true, price: "+15r", priceNum: 15, rawPrice: 15 }
-  ],
-
-  warranty: {
-    title: "", intro: "", steps: [], reason: "", promiseTitle: "", promiseDesc: "", highlight: "", subPromise: ""
-  }
+  ]
 };
 
 
@@ -391,7 +371,7 @@ export const BENEFITS_CONTENT = {
 };
 
 // =================================================================
-// 🖼️ 作品展示 (Gallery Section) - 在这里添加或修改作品
+// 🖼️ 作品展示 (Gallery Section)
 // =================================================================
 export const GALLERY_CATEGORIES = [
   { id: 'all', label: '全部档案' },
@@ -416,7 +396,6 @@ export const GALLERY_PRODUCTS: Product[] = [
     tags: ['高难定制', '角色印象', '华丽风'], 
     craftParams: { size: '10x15cm (记忆珍藏版)', time: '14天', techniques: ['多层悬浮滴胶', '进口变色龙粉', '镭射雕刻', '手工打磨'] }, 
     isNew: true,
-    // Add preset for this item
     presetConfig: {
       sizeName: '记忆珍藏版',
       fluidDesc: '复刻 N°001 苍蓝视界配色',
@@ -510,7 +489,7 @@ export const CHECKOUT_CONTENT = {
     formula: "计价公式",
     baseCraft: "基础与工艺",
     addonTotal: "装饰合计",
-    smallSizeDiscount: "(小尺寸半价)",
+    smallSizeDiscount: "(小尺寸半价/轻装饰免单)",
     rushFee: "加急费",
     packFee: "包装费",
     discount: "优惠折扣",
@@ -558,7 +537,7 @@ export const CHECKOUT_CONTENT = {
     discount: "3. 折扣: ",
     subtotal: "4. 小计: ",
     rushFee: "5. 加急费: ",
-    packFee: "6. 包装费: ",
+    packFee: "6.包装费: ",
     final: "\n💰 最终报价：",
     disclaimer: "(此为系统预估，最终价格以沟通为准)"
   },

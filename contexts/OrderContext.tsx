@@ -1,4 +1,6 @@
 
+
+
 import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
 import { DISCOUNT_CODES, PROCESS_CONTENT } from '../content';
 import { isComplexPrice } from '../utils/price';
@@ -79,6 +81,7 @@ interface OrderContextType {
   
   decorationMode: DecorationMode;
   selectedDecorationPackage: DecorationPackage | null;
+  decorationNote: string; // New field for Package Preference
 
   appliedDiscounts: DiscountRule[];
   isModalOpen: boolean;
@@ -96,6 +99,7 @@ interface OrderContextType {
   
   setDecorationMode: (mode: DecorationMode) => void;
   selectDecorationPackage: (pkg: DecorationPackage | null) => void;
+  setDecorationNote: (note: string) => void;
 
   clearOrder: () => void;
   loadPreset: (config: PresetConfig) => void; // New function
@@ -122,6 +126,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // New States for Two-Path Strategy
   const [decorationMode, setDecorationMode] = useState<DecorationMode>('package');
   const [selectedDecorationPackage, setSelectedDecorationPackage] = useState<DecorationPackage | null>(null);
+  const [decorationNote, setDecorationNote] = useState<string>('');
 
   const [appliedDiscounts, setAppliedDiscounts] = useState<DiscountRule[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -204,7 +209,18 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const baseTotal = basePrice * craftMultiplier;
 
     // 2. Addon Discount (Small Size 50% off decorations)
-    const addonDiscountMultiplier = selectedSize?.isSmallSize ? 0.5 : 1;
+    // NEW: If Small Size + Package Mode + Light Package -> Free (Multiplier 0)
+    let addonDiscountMultiplier = 1;
+    if (selectedSize?.isSmallSize) {
+        if (decorationMode === 'package' && selectedDecorationPackage?.id === 'light') {
+            addonDiscountMultiplier = 0; // FREE
+        } else {
+            addonDiscountMultiplier = 0.5; // 50% OFF
+        }
+    } else {
+        addonDiscountMultiplier = 1;
+    }
+    
     const addonTotal = rawAddonsTotal * addonDiscountMultiplier;
     const addonSavings = rawAddonsTotal - addonTotal;
 
@@ -346,6 +362,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setSelectedAddons([]);
     setSelectedDecorationPackage(null);
     setDecorationMode('package');
+    setDecorationNote('');
     setSelectedRush(null);
     setSelectedPackaging(null);
     setSelectedFluid(null);
@@ -426,6 +443,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       decorationMode,
       selectedDecorationPackage,
+      decorationNote,
 
       appliedDiscounts,
       isModalOpen,
@@ -442,6 +460,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       setDecorationMode,
       selectDecorationPackage,
+      setDecorationNote,
       
       clearOrder,
       loadPreset,
