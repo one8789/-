@@ -1,4 +1,5 @@
 
+
 import { Product, NavItem, ShowcaseItem } from './types';
 
 // =================================================================
@@ -134,13 +135,7 @@ export const HERO_CONTENT = {
     { label: "👉 开始定制", href: "#process", style: "primary", main: true },
     { label: "查看作品", href: "#gallery", style: "light" },
     { label: "联系工坊主", href: "#", action: "consult", style: "light" }
-  ],
-  heroImage: "https://picsum.photos/800/600?random=1",
-  showcaseCard: {
-    title: "工坊最新",
-    subtitle: "New Arrival",
-    icon: "sparkles"
-  }
+  ]
 };
 
 // =================================================================
@@ -173,10 +168,10 @@ export const SELF_WILL_MATERIALS = {
 };
 
 export const PROCESS_CONTENT = {
-  badge: "全场包邮 · 惊喜掉落",
-  sectionTitle: "定制契约",
-  sectionSubtitle: "/ Contract",
-  intro: "一张张翻开你的专属契约，每一步都是一次缔结。",
+  badge: "全场包邮 · 随机小惊喜",
+  sectionTitle: "定制配置单",
+  sectionSubtitle: "/ Custom Process",
+  intro: "从尺寸到细节，一步步组合出你的专属定制方案。",
   
   sizes: [
     { name: '手机伴侣款', size: '7.5×13cm', price: '63r', priceNum: 63, isSmallSize: false, desc: '修长比例，适合竖构图', image: 'https://picsum.photos/seed/size63/400/300', isRecommended: true },
@@ -193,9 +188,9 @@ export const PROCESS_CONTENT = {
     a: {
       id: 'package',
       icon: '✨',
-      title: '主厨推荐模式',
+      title: '主厨推荐套餐',
       subtitle: '灵感漫游者',
-      desc: '信任小狼的审美，选择一种“装饰密度”，剩下的交给我来魔法填充。',
+      desc: '信任小狼的审美，选择一种“装饰密度”，剩下的交给我来发挥。',
       badges: ['省心', '高完成度']
     },
     b: {
@@ -236,8 +231,8 @@ export const PROCESS_CONTENT = {
   // PATH B: Custom Categories (自选)
   customCategories: {
     structure: {
-      title: "结构型选择 (需确认)",
-      desc: "物理层面的改变，一旦封胶无法修改。",
+      title: "进阶玩法 (需确认)", // Used internally if needed, but Process.tsx overrides this title
+      desc: "与常规流麻不同的进阶玩法，通常需要提前确认想法，完成后也不再调整。",
       items: [
         { name: "翻盖款", price: "+15r", priceNum: 15, desc: "像开门一样富有仪式感。外盖装饰，内层净版。", image: "https://picsum.photos/seed/door/300/200" },
         { name: "双层流麻", price: "基础价x2", priceNum: 0, multiplier: 2, desc: "空间折叠术。包含多层图+多层流沙，层次感极其丰富。", image: "https://picsum.photos/seed/double/300/200" },
@@ -246,8 +241,8 @@ export const PROCESS_CONTENT = {
       ]
     },
     enhancement: {
-      title: "表现型增强 (可微调)",
-      desc: "视觉特效的叠加，让画面更具张力。",
+      title: "视觉效果 (可微调)",
+      desc: "背景与光效的选择，会影响整体观感。",
       items: [
         { name: "反光工艺", price: "+10r", priceNum: 10, desc: "开闪光灯炸街必备，不开灯偏灰。", image: "https://picsum.photos/seed/reflec/300/200" },
         { name: "夜光效果", price: "+6r", priceNum: 6, desc: "关灯即亮，无声但惊艳。", image: "https://picsum.photos/seed/glow/400/200" },
@@ -257,7 +252,7 @@ export const PROCESS_CONTENT = {
     },
     external: {
       title: "外部装饰 (最安全)",
-      desc: "最后一步的点缀，完全不影响内部结构。",
+      desc: "最后的点缀阶段，用于增强细节与完成度。",
       items: [
         { name: "立体拼贴", price: "+12r", priceNum: 12, desc: "PVC材质，外层真实触感。", image: "https://picsum.photos/seed/3d/200/200" },
         { name: "巴洛克堆叠", price: "+5r", priceNum: 5, desc: "贝壳/宝石等华丽风格。", image: "https://picsum.photos/seed/baro/200/200" },
@@ -287,7 +282,7 @@ export const WISH_MODAL_CONTENT = {
       desc: "我有想要的特定装饰/风格，想亲手参与搭配。"
     }
   ],
-  diyNotice: "检测到更有主见的灵魂！小尺寸专属福利已激活：所有自选装饰自动半价！",
+  diyNotice: "所有选项均为可选，只需挑选你感兴趣的部分即可完成定制",
   packagePrefForm: {
     title: "魔法定向许愿单",
     intro: "虽然是套餐，但小狼也想知道你的偏好。",
@@ -506,17 +501,17 @@ export const CHECKOUT_CONTENT = {
       working: {
         icon: "🟢",
         label: "工坊营业中",
-        text: "小狼正在工坊中工作中，当前回复稳定，消息会很快被看到"
+        text: "小狼正在工坊专注创作，消息看到会尽快回复哦"
       },
       sleeping: {
-        icon: "🌙",
-        label: "休眠模式",
-        text: "留言已存入梦境，醒来即回。"
+        icon: "🌙💤",
+        label: "梦境潜航中",
+        text: "小狼去梦里寻找灵感了，醒来即回。"
       },
       weekend: {
         icon: "🏖️",
-        label: "周末慢活",
-        text: "周末慢节奏中回复可能随机，留言都会被看到 🌱"
+        label: "周末充电日",
+        text: "周末的消息会统一回复，但工坊需要休息，暂停制作与发货 🌱"
       }
     }
   },

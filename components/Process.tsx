@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Ruler, Palette, Wand2, Layers, 
@@ -130,21 +132,21 @@ const Process: React.FC = () => {
   const steps: Step[] = [
     { 
       id: 'size', 
-      title: '1. 画框 · 基础', 
+      title: '1. 尺寸 · 基础/ Size', 
       icon: <Ruler className="w-4 h-4" />, 
       isCompleted: !!selectedSize,
       summary: selectedSize ? `${selectedSize.name} (${selectedSize.priceStr})` : undefined
     },
     { 
       id: 'fluid', 
-      title: '2. 配方 · 灵魂', 
+      title: '2. 流沙 · 风格/ Motion & Color', 
       icon: <Palette className="w-4 h-4" />, 
-      isCompleted: !!selectedFluid,
+      isCompleted: !!selectedFluid, 
       summary: selectedFluid ? selectedFluid.strategyTitle : undefined
     },
     {
       id: 'mode',
-      title: '3. 装饰 · 策略',
+      title: '3. 装饰方式选择',
       icon: <Layout className="w-4 h-4" />,
       isCompleted: false, // Always active until user clicks next
       summary: decorationMode === 'package' ? '主厨推荐模式 (套餐)' : '自助餐模式 (自选)'
@@ -164,7 +166,7 @@ const Process: React.FC = () => {
      // Final Step for Package Mode
      steps.push({
         id: 'fulfillment',
-        title: '5. 交付 · 契约',
+        title: '5. 制作与交付 / Production & Delivery',
         icon: <Truck className="w-4 h-4" />,
         isCompleted: !!selectedPackaging,
         summary: selectedPackaging ? `${productionMode === 'rush' ? '加急' : '慢酿'} / ${selectedPackaging.tag}` : '待确认'
@@ -179,15 +181,15 @@ const Process: React.FC = () => {
      const externalCount = selectedAddons?.filter(a => ['External', 'Collage', 'Baroque'].includes(a.category)).length || 0;
 
      steps.push(
-       { id: 'structure', title: '4. 结构层 (需确认)', icon: <Hammer className="w-4 h-4" />, isCompleted: true, summary: structureSummary },
-       { id: 'enhancement', title: '5. 表现层 (可微调)', icon: <Eye className="w-4 h-4" />, isCompleted: true, summary: visualCount > 0 ? `${visualCount} 项已选` : '无额外特效' },
-       { id: 'external', title: '6. 装饰层 (最安全)', icon: <Gem className="w-4 h-4" />, isCompleted: true, summary: externalCount > 0 ? `${externalCount} 项已选` : '无额外装饰' }
+       { id: 'structure', title: '4. 进阶玩法/ Advanced Options', icon: <Hammer className="w-4 h-4" />, isCompleted: true, summary: structureSummary },
+       { id: 'enhancement', title: '5. 视觉效果/ Visual Effects', icon: <Eye className="w-4 h-4" />, isCompleted: true, summary: visualCount > 0 ? `${visualCount} 项已选` : '无额外特效' },
+       { id: 'external', title: '6. 外部装饰/ Final Touch', icon: <Gem className="w-4 h-4" />, isCompleted: true, summary: externalCount > 0 ? `${externalCount} 项已选` : '无额外装饰' }
      );
 
      // Final Step for Custom Mode
      steps.push({
         id: 'fulfillment',
-        title: '7. 交付 · 契约',
+        title: '7. 制作与交付 / Production & Delivery',
         icon: <Truck className="w-4 h-4" />,
         isCompleted: !!selectedPackaging,
         summary: selectedPackaging ? `${productionMode === 'rush' ? '加急' : '慢酿'} / ${selectedPackaging.tag}` : '待确认'
@@ -217,47 +219,41 @@ const Process: React.FC = () => {
     }
   };
 
-  // --- Handlers ---
+  // --- Handlers (Auto-advance removed) ---
   const handleSizeSelect = (item: any) => {
     selectSize(item);
     if (item.triggerWish) setShowWishModal(true);
-    setTimeout(advanceStep, 300);
   };
 
   const handleFluidSelect = (val: FluidSelection) => {
     selectFluid(val);
-    if (val.strategyId !== 'self') {
-        setTimeout(advanceStep, 500);
-    }
   };
 
   const handleModeSelect = (targetMode: 'package' | 'custom') => {
-    // 1. Same Mode Click -> Advance
+    // Always trigger hint for custom mode
+    if (targetMode === 'custom') {
+        setShowDiyNotice(true);
+    }
+
+    // 1. Same Mode Click -> No Action
     if (targetMode === decorationMode) {
-        setTimeout(advanceStep, 300);
         return;
     }
 
     // 2. Switch to Package (Potential Conflict)
     if (targetMode === 'package') {
-        // Safe check for array existence
         const hasCustomItems = selectedAddons && selectedAddons.length > 0;
         
         if (hasCustomItems) {
-            // Use setTimeout to unblock the UI/Event Loop before showing the blocking confirm dialog
-            setTimeout(() => {
-                if (window.confirm('切换至【主厨推荐模式】将清空您在【自助餐模式】下已选的所有结构与装饰。\n\n确定要放弃当前选择并切换吗？')) {
-                    clearAddons();
-                    setDecorationMode('package');
-                    setTimeout(advanceStep, 100);
-                }
-            }, 50);
+            if (window.confirm('切换至【主厨推荐模式】将清空您在【自助餐模式】下已选的所有结构与装饰。\n\n确定要放弃当前选择并切换吗？')) {
+                clearAddons();
+                setDecorationMode('package');
+            }
             return;
         } 
         
         // No items selected, direct switch
         setDecorationMode('package');
-        setTimeout(advanceStep, 300);
         return;
     }
 
@@ -265,15 +261,12 @@ const Process: React.FC = () => {
     if (targetMode === 'custom') {
         selectDecorationPackage(null);
         setDecorationMode('custom');
-        setTimeout(advanceStep, 300);
     }
   };
 
   // New Handler for Package Click -> Open Modal
   const handlePackageClick = (pkg: any) => {
       setTempSelectedPkg(pkg);
-      // Reset form or load existing note if same package selected?
-      // For simplicity, reset or keep current state.
       setShowPackagePrefModal(true);
   };
 
@@ -288,7 +281,6 @@ const Process: React.FC = () => {
       setDecorationNote(note);
       
       setShowPackagePrefModal(false);
-      setTimeout(advanceStep, 300);
   };
   
   // Handler for Small Size Benefit Option 1 (Free Light Decoration)
@@ -316,8 +308,8 @@ const Process: React.FC = () => {
        {lightboxSrc && <ProcessLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
        
        {showDiyNotice && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 animate-fade-in-down">
-          <Sparkles className="w-5 h-5 text-yellow-300" />
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 animate-fade-in-down w-[90%] md:w-auto text-center justify-center">
+          <Info className="w-5 h-5 text-yellow-300 shrink-0" />
           <span className="text-sm font-bold">{WISH_MODAL_CONTENT.diyNotice}</span>
         </div>
        )}
@@ -409,6 +401,17 @@ const Process: React.FC = () => {
                                       ))}
                                    </div>
                                    <p className="text-xs text-center text-gray-400">{content.sizeNote}</p>
+                                   
+                                   {/* Nav Buttons */}
+                                   <div className="mt-6 flex justify-end items-center pt-4 border-t border-gray-100">
+                                      <button 
+                                         onClick={advanceStep}
+                                         disabled={!selectedSize}
+                                         className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-colors shadow-md ${selectedSize ? 'bg-gray-900 text-white hover:bg-black' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                                      >
+                                         下一步 <ArrowRight className="w-4 h-4"/>
+                                      </button>
+                                   </div>
                                 </div>
                              )}
 
@@ -467,9 +470,9 @@ const Process: React.FC = () => {
                                    </div>
 
                                    {/* Self-Will */}
-                                   <div className={`border rounded-xl p-4 transition-all ${selectedFluid?.strategyId === 'self' ? 'border-primary-500 bg-white ring-1 ring-primary-200' : 'border-gray-200'}`}>
+                                   <div className={`border rounded-xl p-4 transition-all ${selectedFluid?.strategyId === 'self' ? 'border-primary-500 bg-white ring-1 ring-primary-200' : 'border-gray-200 hover:border-gray-300'}`}>
                                       <div 
-                                         className="flex items-center gap-3 mb-4 cursor-pointer"
+                                         className={`flex items-center gap-3 cursor-pointer ${selectedFluid?.strategyId === 'self' ? 'mb-4' : ''}`}
                                          onClick={() => handleFluidSelect({ strategyId: 'self', strategyTitle: '任性玩', description: '自选材料', materials: customMaterials.map(m => m.name) })}
                                       >
                                          <span className="text-2xl">🎮</span>
@@ -480,149 +483,195 @@ const Process: React.FC = () => {
                                          {selectedFluid?.strategyId === 'self' && <Check className="w-5 h-5 text-primary-500 ml-auto" />}
                                       </div>
                                       
-                                      {/* Material Selection UI */}
-                                      <div className="bg-gray-50 rounded-lg p-3">
-                                         <div className="flex flex-col gap-2 mb-3">
-                                            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar items-center">
-                                                {Array.from({ length: Math.max(5, customMaterials.length) }).map((_, i) => (
-                                                <div key={i} className="w-8 h-8 rounded-full border border-dashed border-gray-300 bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300 relative group">
-                                                    {customMaterials[i] ? (
-                                                        <>
-                                                        <img src={customMaterials[i].img} className="w-full h-full object-cover"/>
-                                                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <span className="text-[8px] text-white font-mono font-bold">{customMaterials[i].name.split(' ')[0]}</span>
+                                      {selectedFluid?.strategyId === 'self' && (
+                                      <div className="animate-fade-in">
+                                          {/* Material Selection UI */}
+                                          <div className="bg-gray-50 rounded-lg p-3">
+                                             <div className="flex flex-col gap-2 mb-3">
+                                                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar items-center">
+                                                    {Array.from({ length: Math.max(5, customMaterials.length) }).map((_, i) => (
+                                                    <div key={i} className="w-8 h-8 rounded-full border border-dashed border-gray-300 bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300 relative group">
+                                                        {customMaterials[i] ? (
+                                                            <>
+                                                            <img src={customMaterials[i].img} className="w-full h-full object-cover"/>
+                                                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <span className="text-[8px] text-white font-mono font-bold">{customMaterials[i].name.split(' ')[0]}</span>
+                                                            </div>
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-gray-300 text-xs">{i+1}</span>
+                                                        )}
+                                                    </div>
+                                                    ))}
+                                                    <div className={`text-xs flex items-center whitespace-nowrap transition-colors duration-500 font-bold ml-1 ${
+                                                        customMaterials.length >= 7 ? 'text-red-600' :
+                                                        customMaterials.length === 6 ? 'text-orange-600' :
+                                                        customMaterials.length === 5 ? 'text-orange-500' :
+                                                        'text-gray-400 font-normal'
+                                                    }`}>
+                                                        已选: {customMaterials.length}/5
+                                                    </div>
+                                                </div>
+
+                                                {/* Suggestion Message */}
+                                                {customMaterials.length >= 5 && (
+                                                    <div className={`text-xs p-3 rounded-lg border transition-all duration-500 animate-fade-in ${
+                                                        customMaterials.length >= 7 ? 'bg-red-50 border-red-100 text-red-800' : 'bg-orange-50 border-orange-100 text-orange-800'
+                                                    }`}>
+                                                        <div className="font-bold mb-1 flex items-center gap-1">
+                                                            🐺 小狼的创作建议：
                                                         </div>
-                                                        </>
-                                                    ) : (
-                                                        <span className="text-gray-300 text-xs">{i+1}</span>
-                                                    )}
-                                                </div>
-                                                ))}
-                                                <div className={`text-xs flex items-center whitespace-nowrap transition-colors duration-500 font-bold ml-1 ${
-                                                    customMaterials.length >= 7 ? 'text-red-600' :
-                                                    customMaterials.length === 6 ? 'text-orange-600' :
-                                                    customMaterials.length === 5 ? 'text-orange-500' :
-                                                    'text-gray-400 font-normal'
-                                                }`}>
-                                                    已选: {customMaterials.length}/5
-                                                </div>
-                                            </div>
-
-                                            {/* Suggestion Message */}
-                                            {customMaterials.length >= 5 && (
-                                                <div className={`text-xs p-3 rounded-lg border transition-all duration-500 animate-fade-in ${
-                                                    customMaterials.length >= 7 ? 'bg-red-50 border-red-100 text-red-800' : 'bg-orange-50 border-orange-100 text-orange-800'
-                                                }`}>
-                                                    <div className="font-bold mb-1 flex items-center gap-1">
-                                                        🐺 小狼的创作建议：
+                                                        <div className="opacity-90 leading-relaxed">
+                                                            材料超过五种，可能会让背景的美感被些许遮盖哦。但如果你胸有成竹，请尽管突破界限，去创造属于你的华丽星河吧！
+                                                        </div>
                                                     </div>
-                                                    <div className="opacity-90 leading-relaxed">
-                                                        材料超过五种，可能会让背景的美感被些许遮盖哦。但如果你胸有成竹，请尽管突破界限，去创造属于你的华丽星河吧！
-                                                    </div>
-                                                </div>
-                                            )}
-                                         </div>
-                                         
-                                         {/* Categories Accordion */}
-                                         <div className="space-y-2">
-                                            {Object.entries(SELF_WILL_MATERIALS).map(([key, mats]) => (
-                                               <div key={key}>
-                                                  <button 
-                                                     onClick={() => setExpandFluidCategory(expandFluidCategory === key ? null : key)}
-                                                     className="flex items-center gap-2 text-xs font-bold text-gray-600 w-full hover:bg-gray-100 p-1 rounded"
-                                                  >
-                                                     <ChevronDown className={`w-3 h-3 transition-transform ${expandFluidCategory === key ? 'rotate-180' : ''}`} />
-                                                     {key === 'base' ? '基础色粉' : key === 'pearl' ? '珠光粉' : key === 'glitter' ? '亮片' : '特殊填充'}
-                                                  </button>
-                                                  {expandFluidCategory === key && (
-                                                     <div className="grid grid-cols-4 gap-2 mt-2">
-                                                        {mats.map(m => {
-                                                           const isSelected = customMaterials.some(cm => cm.id === m.id);
-                                                           // Extract the number (e.g. "01") from the name "01 银色细闪"
-                                                           const materialNumber = m.name.split(' ')[0];
-                                                           
-                                                           return (
-                                                              <div 
-                                                                 key={m.id} 
-                                                                 onClick={() => {
-                                                                    setCustomMaterials(prev => {
-                                                                       const exists = prev.find(p => p.id === m.id);
-                                                                       // Modified logic: Allow unselect, or append without limit
-                                                                       const next = exists ? prev.filter(p => p.id !== m.id) : [...prev, m];
-                                                                       
-                                                                       // Force select 'self' strategy on interaction
-                                                                       selectFluid({ 
-                                                                           strategyId: 'self', 
-                                                                           strategyTitle: '任性玩', 
-                                                                           description: '自选材料', 
-                                                                           materials: next.map(x => x.name) 
-                                                                       });
-                                                                       
-                                                                       return next;
-                                                                    });
-                                                                 }}
-                                                                 className={`aspect-square rounded-xl border relative overflow-hidden cursor-pointer transition-all duration-300 group ${isSelected ? 'border-primary-500 ring-2 ring-primary-100 scale-95 shadow-inner' : 'border-gray-200 hover:border-gray-300'}`}
-                                                              >
-                                                                 <img src={m.img} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                                                 
-                                                                 {/* Hotspot Number Badge */}
-                                                                 <div className="absolute top-1 left-1 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-white/20 shadow-sm z-10 font-mono">
-                                                                     {materialNumber}
-                                                                 </div>
-
-                                                                 {/* Selected Overlay - Stronger visual cue */}
-                                                                 {isSelected && (
-                                                                     <div className="absolute inset-0 bg-primary-500/40 flex items-center justify-center backdrop-blur-[1px] z-20 animate-fade-in">
-                                                                         <div className="bg-white text-primary-500 rounded-full p-1 shadow-lg transform scale-100 transition-transform">
-                                                                             <Check className="w-4 h-4 stroke-[3]" />
-                                                                         </div>
+                                                )}
+                                             </div>
+                                             
+                                             {/* Categories Accordion */}
+                                             <div className="space-y-2">
+                                                {Object.entries(SELF_WILL_MATERIALS).map(([key, mats]) => (
+                                                   <div key={key}>
+                                                      <button 
+                                                         onClick={() => setExpandFluidCategory(expandFluidCategory === key ? null : key)}
+                                                         className="flex items-center gap-2 text-xs font-bold text-gray-600 w-full hover:bg-gray-100 p-1 rounded"
+                                                      >
+                                                         <ChevronDown className={`w-3 h-3 transition-transform ${expandFluidCategory === key ? 'rotate-180' : ''}`} />
+                                                         {key === 'base' ? '基础色粉' : key === 'pearl' ? '珠光粉' : key === 'glitter' ? '亮片' : '特殊填充'}
+                                                      </button>
+                                                      {expandFluidCategory === key && (
+                                                         <div className="grid grid-cols-4 gap-2 mt-2">
+                                                            {mats.map(m => {
+                                                               const isSelected = customMaterials.some(cm => cm.id === m.id);
+                                                               const materialNumber = m.name.split(' ')[0];
+                                                               
+                                                               return (
+                                                                  <div 
+                                                                     key={m.id} 
+                                                                     onClick={() => {
+                                                                        setCustomMaterials(prev => {
+                                                                           const exists = prev.find(p => p.id === m.id);
+                                                                           const next = exists ? prev.filter(p => p.id !== m.id) : [...prev, m];
+                                                                           selectFluid({ 
+                                                                               strategyId: 'self', 
+                                                                               strategyTitle: '任性玩', 
+                                                                               description: '自选材料', 
+                                                                               materials: next.map(x => x.name) 
+                                                                           });
+                                                                           return next;
+                                                                        });
+                                                                     }}
+                                                                     className={`aspect-square rounded-xl border relative overflow-hidden cursor-pointer transition-all duration-300 group ${isSelected ? 'border-primary-500 ring-2 ring-primary-100 scale-95 shadow-inner' : 'border-gray-200 hover:border-gray-300'}`}
+                                                                  >
+                                                                     <img src={m.img} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                                     <div className="absolute top-1 left-1 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-white/20 shadow-sm z-10 font-mono">
+                                                                         {materialNumber}
                                                                      </div>
-                                                                 )}
-                                                              </div>
-                                                           )
-                                                        })}
-                                                     </div>
-                                                  )}
-                                               </div>
-                                            ))}
-                                         </div>
+                                                                     {isSelected && (
+                                                                         <div className="absolute inset-0 bg-primary-500/40 flex items-center justify-center backdrop-blur-[1px] z-20 animate-fade-in">
+                                                                             <div className="bg-white text-primary-500 rounded-full p-1 shadow-lg transform scale-100 transition-transform">
+                                                                                 <Check className="w-4 h-4 stroke-[3]" />
+                                                                             </div>
+                                                                         </div>
+                                                                     )}
+                                                                  </div>
+                                                               )
+                                                            })}
+                                                         </div>
+                                                      )}
+                                                   </div>
+                                                ))}
+                                             </div>
+                                          </div>
+                                          <div className="mt-4 text-center">
+                                             <button onClick={advanceStep} className="bg-primary-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow hover:bg-primary-600 transition-colors">确认配方</button>
+                                          </div>
                                       </div>
-                                      <div className="mt-4 text-center">
-                                         <button onClick={advanceStep} className="bg-primary-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow hover:bg-primary-600 transition-colors">确认配方</button>
-                                      </div>
+                                      )}
                                    </div>
+                                   
+                                   {/* Nav Buttons (Hidden for self-will as it has its own confirmation, visible for others) */}
+                                   {selectedFluid?.strategyId !== 'self' && (
+                                      <div className="mt-6 flex justify-between items-center pt-4 border-t border-gray-100">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="flex items-center gap-2 text-gray-500 text-sm hover:text-gray-800 transition-colors"
+                                        >
+                                            <ArrowLeft className="w-4 h-4"/> 上一步
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={advanceStep}
+                                            disabled={!selectedFluid}
+                                            className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-colors shadow-md ${selectedFluid ? 'bg-gray-900 text-white hover:bg-black' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                                        >
+                                            下一步 <ArrowRight className="w-4 h-4"/>
+                                        </button>
+                                      </div>
+                                   )}
                                 </div>
                              )}
 
                              {/* --- STEP 3: DECORATION MODE (FORK) --- */}
                              {step.id === 'mode' && (
-                                <div className="grid md:grid-cols-2 gap-4">
-                                   <button 
-                                      onClick={() => handleModeSelect('package')}
-                                      className={`p-5 rounded-2xl border-2 text-left transition-all hover:shadow-lg relative overflow-hidden ${decorationMode === 'package' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-primary-200'}`}
-                                   >
-                                      <div className="absolute top-0 right-0 bg-primary-500 text-white text-[10px] px-2 py-1 rounded-bl-lg">推荐</div>
-                                      <div className="text-3xl mb-3">{content.paths.a.icon}</div>
-                                      <h4 className="font-bold text-gray-800 text-lg mb-1">{content.paths.a.title}</h4>
-                                      <div className="text-primary-600 font-bold text-sm mb-2">{content.paths.a.subtitle}</div>
-                                      <p className="text-xs text-gray-500 leading-relaxed mb-4">{content.paths.a.desc}</p>
-                                      <div className="flex flex-wrap gap-2">
-                                         {content.paths.a.badges.map(b => <span key={b} className="text-[10px] bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-500">{b}</span>)}
-                                      </div>
-                                   </button>
+                                <div>
+                                    <div className="grid gap-3">
+                                    {/* Option A: Package Mode (Horizontal) */}
+                                    <button 
+                                        onClick={() => handleModeSelect('package')}
+                                        className={`p-5 rounded-2xl border-2 transition-all hover:shadow-lg relative overflow-hidden flex flex-row items-center justify-between text-left ${decorationMode === 'package' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-primary-200'}`}
+                                    >
+                                        {/* Label Badge */}
+                                        <div className="absolute top-0 right-0 bg-primary-500 text-white text-[10px] px-2 py-1 rounded-bl-lg z-10">推荐</div>
+                                        
+                                        <div className="flex-1 pr-4">
+                                            <h4 className="font-bold text-gray-800 text-lg mb-1">{content.paths.a.title}</h4>
+                                            <div className="text-primary-600 font-bold text-sm mb-2">{content.paths.a.subtitle}</div>
+                                            <p className="text-xs text-gray-500 leading-relaxed mb-3">{content.paths.a.desc}</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {content.paths.a.badges.map(b => <span key={b} className="text-[10px] bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-500">{b}</span>)}
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Emoji on Right */}
+                                        <div className="text-4xl shrink-0 ml-2 animate-float" style={{ animationDuration: '3s' }}>{content.paths.a.icon}</div>
+                                    </button>
 
-                                   <button 
-                                      onClick={() => handleModeSelect('custom')}
-                                      className={`p-5 rounded-2xl border-2 text-left transition-all hover:shadow-lg relative ${decorationMode === 'custom' ? 'border-gray-800 bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}
-                                   >
-                                      <div className="text-3xl mb-3">{content.paths.b.icon}</div>
-                                      <h4 className="font-bold text-gray-800 text-lg mb-1">{content.paths.b.title}</h4>
-                                      <div className="text-gray-600 font-bold text-sm mb-2">{content.paths.b.subtitle}</div>
-                                      <p className="text-xs text-gray-500 leading-relaxed mb-4">{content.paths.b.desc}</p>
-                                      <div className="flex flex-wrap gap-2">
-                                         {content.paths.b.badges.map(b => <span key={b} className="text-[10px] bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-500">{b}</span>)}
-                                      </div>
-                                   </button>
+                                    {/* Option B: Custom Mode (Horizontal) */}
+                                    <button 
+                                        onClick={() => handleModeSelect('custom')}
+                                        className={`p-5 rounded-2xl border-2 transition-all hover:shadow-lg relative flex flex-row items-center justify-between text-left ${decorationMode === 'custom' ? 'border-gray-800 bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}
+                                    >
+                                        <div className="flex-1 pr-4">
+                                            <h4 className="font-bold text-gray-800 text-lg mb-1">{content.paths.b.title}</h4>
+                                            <div className="text-gray-600 font-bold text-sm mb-2">{content.paths.b.subtitle}</div>
+                                            <p className="text-xs text-gray-500 leading-relaxed mb-3">{content.paths.b.desc}</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {content.paths.b.badges.map(b => <span key={b} className="text-[10px] bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-500">{b}</span>)}
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Emoji on Right */}
+                                        <div className="text-4xl shrink-0 ml-2">{content.paths.b.icon}</div>
+                                    </button>
+                                    </div>
+                                    
+                                    {/* Nav Buttons */}
+                                    <div className="mt-6 flex justify-between items-center pt-4 border-t border-gray-100">
+                                      <button 
+                                         onClick={prevStep}
+                                         className="flex items-center gap-2 text-gray-500 text-sm hover:text-gray-800 transition-colors"
+                                      >
+                                         <ArrowLeft className="w-4 h-4"/> 上一步
+                                      </button>
+                                      
+                                      <button 
+                                         onClick={advanceStep}
+                                         className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold bg-gray-900 text-white hover:bg-black transition-colors shadow-md"
+                                      >
+                                         下一步 <ArrowRight className="w-4 h-4"/>
+                                      </button>
+                                    </div>
                                 </div>
                              )}
 
@@ -653,6 +702,24 @@ const Process: React.FC = () => {
                                       <p className="text-xs text-gray-400 text-center mb-4">
                                          * 装饰方案为整体设计密度，不逐项选择材料。特殊结构设计将单独确认。
                                       </p>
+                                   </div>
+                                   
+                                   {/* Nav Buttons */}
+                                   <div className="mt-6 flex justify-between items-center pt-4 border-t border-gray-100">
+                                      <button 
+                                         onClick={prevStep}
+                                         className="flex items-center gap-2 text-gray-500 text-sm hover:text-gray-800 transition-colors"
+                                      >
+                                         <ArrowLeft className="w-4 h-4"/> 上一步
+                                      </button>
+                                      
+                                      <button 
+                                         onClick={advanceStep}
+                                         disabled={!selectedDecorationPackage}
+                                         className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-colors shadow-md ${selectedDecorationPackage ? 'bg-gray-900 text-white hover:bg-black' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                                      >
+                                         下一步 <ArrowRight className="w-4 h-4"/>
+                                      </button>
                                    </div>
                                 </div>
                              )}
@@ -702,6 +769,11 @@ const Process: React.FC = () => {
                                       })}
                                    </div>
                                    
+                                   {/* 安抚型补充 (Only for Structure) */}
+                                   {step.id === 'structure' && (
+                                      <p className="text-xs text-gray-400 mt-4 text-center">如果你不确定是否适合自己，可以直接跳过这一项</p>
+                                   )}
+
                                    <div className="mt-6 flex justify-between items-center pt-4 border-t border-gray-100">
                                       <button 
                                          onClick={prevStep}
