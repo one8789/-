@@ -1,20 +1,20 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Copy, CheckCircle, Tag, AlertCircle, Sparkles, Send, Calculator, Trash2, ChevronDown, ShieldAlert, Lock, Unlock, Video, MessageCircle, ShoppingBag, ExternalLink, ArrowRight, Store, HeartHandshake, Clock, QrCode, Palette, Shield, Star, Trophy, Scan } from 'lucide-react';
+import { X, Copy, CheckCircle, Tag, AlertCircle, Sparkles, MessageCircle, Calculator, Trash2, ChevronDown, ShieldAlert, Lock, ArrowRight, Shield, Trophy, Palette } from 'lucide-react';
 import { useOrder } from '../contexts/OrderContext';
 import { CONSULTATION_CONTENT, DISCLAIMER_CONTENT, CONTACT_INFO, CHECKOUT_CONTENT, SITE_STATUS } from '../content';
+
+// --- Sub-components to clean up render logic ---
 
 const WorkshopStatus: React.FC = () => {
   const [status, setStatus] = useState<'working' | 'sleeping' | 'weekend'>('working');
 
   useEffect(() => {
-    // 1. Check for manual override first
     if (SITE_STATUS.forceStatus !== 'auto') {
       setStatus(SITE_STATUS.forceStatus);
-      return; // Exit early, skipping automatic detection
+      return;
     }
 
-    // 2. Automatic detection logic
     const now = new Date();
     const day = now.getDay(); // 0 = Sunday, 6 = Saturday
     const hour = now.getHours();
@@ -35,14 +35,10 @@ const WorkshopStatus: React.FC = () => {
 
   const getStyle = () => {
     switch (status) {
-      case 'working':
-        return 'bg-emerald-50 border-emerald-100 text-emerald-900';
-      case 'sleeping':
-        return 'bg-indigo-50 border-indigo-100 text-indigo-900';
-      case 'weekend':
-        return 'bg-amber-50 border-amber-100 text-amber-900';
-      default:
-        return 'bg-gray-50 border-gray-100 text-gray-900';
+      case 'working': return 'bg-emerald-50 border-emerald-100 text-emerald-900';
+      case 'sleeping': return 'bg-indigo-50 border-indigo-100 text-indigo-900';
+      case 'weekend': return 'bg-amber-50 border-amber-100 text-amber-900';
+      default: return 'bg-gray-50 border-gray-100 text-gray-900';
     }
   };
 
@@ -76,6 +72,133 @@ const WorkshopStatus: React.FC = () => {
   );
 };
 
+const DisclaimerAccordion: React.FC = () => {
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  const toggleAccordion = (section: string) => {
+    setExpandedSection(expandedSection === section ? null : section);
+  };
+
+  return (
+    <div className="mb-8 border border-gray-200 rounded-2xl overflow-hidden">
+      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+        <h4 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-gray-500" />
+          {CHECKOUT_CONTENT.labels.disclaimerTitle}
+        </h4>
+        <div className="text-[10px] text-gray-400">{CHECKOUT_CONTENT.labels.readSign}</div>
+      </div>
+      
+      <div className="divide-y divide-gray-100">
+        {Object.entries(DISCLAIMER_CONTENT)
+          .filter(([key]) => key !== 'slideText' && key !== 'slideSuccessText')
+          .map(([key, section]: [string, any]) => (
+            <div key={key} className="bg-white">
+              <button 
+                onClick={() => toggleAccordion(key)} 
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+              >
+                <div>
+                  <div className="text-xs font-bold text-gray-700">{section.title}</div>
+                  <div className="text-[10px] text-gray-400">{section.summary}</div>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-300 transition-transform ${expandedSection === key ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {expandedSection === key && (
+                <div className="px-4 py-3 bg-gray-50/50 text-xs text-gray-500 leading-relaxed animate-fade-in space-y-2">
+                  {section.intro && <p className="mb-2 italic">{section.intro}</p>}
+                  
+                  {section.content?.map((item: any, i: number) => (
+                    <div key={i} className={`p-2 rounded ${item.highlight ? 'bg-red-50 text-red-600 border border-red-100' : ''}`}>
+                      {item.title && <span className="font-bold block mb-1">{item.title}</span>}
+                      {item.text}
+                    </div>
+                  ))}
+                  
+                  {section.steps && (
+                    <ol className="list-decimal list-inside space-y-1 mt-2">
+                      {section.steps.map((step: string, i: number) => <li key={i}>{step}</li>)}
+                    </ol>
+                  )}
+                  
+                  {section.promiseText && (
+                    <div className="mt-3 bg-green-50 p-2 rounded border border-green-100 text-green-700">
+                      <div className="font-bold mb-1">{section.promiseTitle}</div>
+                      {section.promiseText}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+};
+
+interface ContractSliderProps {
+  isSigned: boolean;
+  onSign: (signed: boolean) => void;
+}
+
+const ContractSlider: React.FC<ContractSliderProps> = ({ isSigned, onSign }) => {
+  const [sliderValue, setSliderValue] = useState(0);
+  const sliderRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isSigned) setSliderValue(0);
+    else setSliderValue(100);
+  }, [isSigned]);
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value);
+    setSliderValue(val);
+    if (val >= 100) onSign(true);
+  };
+
+  const handleSliderEnd = () => {
+    if (sliderValue < 100) setSliderValue(0);
+  };
+
+  return (
+    <div className="p-6 bg-gradient-to-b from-white to-gray-50" id="contract-slider">
+      <div className="relative h-12 rounded-full bg-gray-200 overflow-hidden shadow-inner flex items-center">
+        <div className={`absolute inset-0 flex items-center justify-center text-xs font-bold transition-opacity duration-300 ${isSigned ? 'text-green-600' : 'text-gray-400'}`}>
+          {isSigned ? DISCLAIMER_CONTENT.slideSuccessText : DISCLAIMER_CONTENT.slideText}
+        </div>
+        
+        <div 
+          className="absolute left-0 top-0 bottom-0 bg-green-400 transition-all duration-100 opacity-20" 
+          style={{ width: `${sliderValue}%` }}
+        ></div>
+        
+        <input 
+          ref={sliderRef} 
+          type="range" 
+          min="0" 
+          max="100" 
+          value={isSigned ? 100 : sliderValue} 
+          onChange={handleSliderChange} 
+          onTouchEnd={handleSliderEnd} 
+          onMouseUp={handleSliderEnd} 
+          disabled={isSigned} 
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" 
+        />
+        
+        <div 
+          className={`absolute top-1 bottom-1 w-10 rounded-full shadow-md flex items-center justify-center transition-all duration-100 z-10 pointer-events-none ${isSigned ? 'bg-green-500 text-white right-1' : 'bg-white text-gray-400 left-1'}`} 
+          style={!isSigned ? { left: `calc(${sliderValue}% - ${sliderValue * 0.4}px)` } : {}}
+        >
+          {isSigned ? <Lock className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+// --- Main Component ---
 
 const CheckoutModal: React.FC = () => {
   const { 
@@ -87,19 +210,13 @@ const CheckoutModal: React.FC = () => {
     consultationMode, setConsultationMode, removeAddon
   } = useOrder();
 
-  const [copied, setCopied] = useState(false);
   const [showCopyToast, setShowCopyToast] = useState(false);
   const [showShieldPopover, setShowShieldPopover] = useState(false);
   const [inputCode, setInputCode] = useState('');
   
   const [isContractSigned, setIsContractSigned] = useState(false);
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [sliderValue, setSliderValue] = useState(0);
-  
-  // Success View State
   const [showSuccessView, setShowSuccessView] = useState(false);
 
-  const sliderRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -107,17 +224,13 @@ const CheckoutModal: React.FC = () => {
       clearNotification();
       setInputCode('');
       setIsContractSigned(false);
-      setSliderValue(0);
-      setExpandedSection(null);
-      setCopied(false);
       setShowCopyToast(false);
       setShowShieldPopover(false);
-      setShowSuccessView(false); // Reset success view
+      setShowSuccessView(false);
       if (consultationMode) setConsultationMode(false);
     }
   }, [isModalOpen, clearNotification, consultationMode, setConsultationMode]);
   
-  // Popover close on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
@@ -139,20 +252,6 @@ const CheckoutModal: React.FC = () => {
     if (e.key === 'Enter') handleAddDiscount();
   };
 
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseInt(e.target.value);
-    setSliderValue(val);
-    if (val >= 100) setIsContractSigned(true);
-  };
-
-  const handleSliderEnd = () => {
-    if (sliderValue < 100) setSliderValue(0);
-  };
-
-  const toggleAccordion = (section: string) => {
-    setExpandedSection(expandedSection === section ? null : section);
-  };
-
   if (!isModalOpen) return null;
 
   const getOrderText = () => {
@@ -164,7 +263,6 @@ const CheckoutModal: React.FC = () => {
       text = T.intro + T.separator;
       if (selectedSize) text += `${T.size}${selectedSize.name} (${selectedSize.priceStr})\n`;
       
-      // Fluid
       if (selectedFluid) {
         let fluidText = `${selectedFluid.strategyTitle}`;
         if (selectedFluid.strategyId === 'buddha' && selectedFluid.note) fluidText += ` [备注: ${selectedFluid.note}]`;
@@ -173,14 +271,12 @@ const CheckoutModal: React.FC = () => {
         text += `${T.fluid}${fluidText}\n`;
       }
 
-      // Decoration Logic
       if (decorationMode === 'package' && selectedDecorationPackage) {
          text += `${T.craft} 套餐 · ${selectedDecorationPackage.name} (${selectedDecorationPackage.price}r)\n`;
          if (decorationNote) {
              text += `  [${decorationNote}]\n`;
          }
       } else {
-         // Filter items
          const structureItems = selectedAddons.filter(a => a.category === 'Structure');
          const otherItems = selectedAddons.filter(a => a.category !== 'Structure');
          
@@ -231,7 +327,6 @@ const CheckoutModal: React.FC = () => {
     }
     const orderText = getOrderText();
     navigator.clipboard.writeText(orderText).then(() => {
-      // Show Success View instead of just a toast
       setShowSuccessView(true);
     });
   };
@@ -306,12 +401,10 @@ const CheckoutModal: React.FC = () => {
         {/* SUCCESS VIEW */}
         {showSuccessView ? (
             <div className="p-8 md:p-12 flex flex-col items-center justify-center text-center relative overflow-hidden h-full">
-                {/* Decorative Background */}
                 <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary-50 to-white -z-10"></div>
                 <div className="absolute -top-10 -right-10 w-40 h-40 bg-yellow-100 rounded-full blur-3xl opacity-50"></div>
                 <div className="absolute bottom-0 left-0 w-40 h-40 bg-purple-100 rounded-full blur-3xl opacity-50"></div>
                 
-                {/* Celebration Icon */}
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-500 mb-6 animate-bounce shadow-lg shadow-green-100 border-4 border-white">
                     <CheckCircle className="w-10 h-10" />
                 </div>
@@ -323,7 +416,6 @@ const CheckoutModal: React.FC = () => {
                     请前往微信发送给小狼，完成最后的召唤仪式。
                 </p>
 
-                {/* Star Echo Invitation Card */}
                 <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl transform hover:scale-[1.02] transition-transform cursor-pointer relative overflow-hidden group border border-gray-700">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500 blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
                     
@@ -517,7 +609,11 @@ const CheckoutModal: React.FC = () => {
                         
                         {appliedDiscounts.length > 0 && (<div className="flex flex-wrap gap-2 mb-8">{appliedDiscounts.map((discount, idx) => (<div key={idx} className="bg-red-50 border border-red-100 text-red-500 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1"><span>{discount.label}</span><button onClick={() => removeDiscount(discount.code)} className="hover:text-red-700"><X className="w-3 h-3" /></button></div>))}</div>)}
                         
-                        {selectedSize && (<div className="mb-8 border border-gray-200 rounded-2xl overflow-hidden"><div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between"><h4 className="text-sm font-bold text-gray-700 flex items-center gap-2"><ShieldAlert className="w-4 h-4 text-gray-500" />{CHECKOUT_CONTENT.labels.disclaimerTitle}</h4><div className="text-[10px] text-gray-400">{CHECKOUT_CONTENT.labels.readSign}</div></div><div className="divide-y divide-gray-100">{Object.entries(DISCLAIMER_CONTENT).filter(([key]) => key !== 'slideText' && key !== 'slideSuccessText').map(([key, section]: [string, any]) => (<div key={key} className="bg-white"><button onClick={() => toggleAccordion(key)} className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"><div><div className="text-xs font-bold text-gray-700">{section.title}</div><div className="text-[10px] text-gray-400">{section.summary}</div></div><ChevronDown className={`w-4 h-4 text-gray-300 transition-transform ${expandedSection === key ? 'rotate-180' : ''}`} /></button>{expandedSection === key && (<div className="px-4 py-3 bg-gray-50/50 text-xs text-gray-500 leading-relaxed animate-fade-in space-y-2">{section.intro && <p className="mb-2 italic">{section.intro}</p>}{section.content?.map((item: any, i: number) => (<div key={i} className={`p-2 rounded ${item.highlight ? 'bg-red-50 text-red-600 border border-red-100' : ''}`}>{item.title && <span className="font-bold block mb-1">{item.title}</span>}{item.text}</div>))}{section.steps && (<ol className="list-decimal list-inside space-y-1 mt-2">{section.steps.map((step: string, i: number) => <li key={i}>{step}</li>)}</ol>)}{section.promiseText && (<div className="mt-3 bg-green-50 p-2 rounded border border-green-100 text-green-700"><div className="font-bold mb-1">{section.promiseTitle}</div>{section.promiseText}</div>)}</div>)}</div>))}</div><div className="p-6 bg-gradient-to-b from-white to-gray-50" id="contract-slider"><div className="relative h-12 rounded-full bg-gray-200 overflow-hidden shadow-inner flex items-center"><div className={`absolute inset-0 flex items-center justify-center text-xs font-bold transition-opacity duration-300 ${isContractSigned ? 'text-green-600' : 'text-gray-400'}`}>{isContractSigned ? DISCLAIMER_CONTENT.slideSuccessText : DISCLAIMER_CONTENT.slideText}</div><div className={`absolute left-0 top-0 bottom-0 bg-green-400 transition-all duration-100 opacity-20`} style={{ width: `${sliderValue}%` }}></div><input ref={sliderRef} type="range" min="0" max="100" value={isContractSigned ? 100 : sliderValue} onChange={handleSliderChange} onTouchEnd={handleSliderEnd} onMouseUp={handleSliderEnd} disabled={isContractSigned} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" /><div className={`absolute top-1 bottom-1 w-10 rounded-full shadow-md flex items-center justify-center transition-all duration-100 z-10 pointer-events-none ${isContractSigned ? 'bg-green-500 text-white right-1' : 'bg-white text-gray-400 left-1'}`} style={!isContractSigned ? { left: `calc(${sliderValue}% - ${sliderValue * 0.4}px)` } : {}}>{isContractSigned ? <Lock className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}</div></div></div></div>
+                        {selectedSize && (
+                          <DisclaimerAccordion />
+                        )}
+
+                        <ContractSlider isSigned={isContractSigned} onSign={setIsContractSigned} />
                     </div>
                 </div>
                 

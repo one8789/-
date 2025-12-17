@@ -64,10 +64,9 @@ export const DISCLAIMER_CONTENT = {
     title: "⚠️ 风险提示",
     summary: "气泡/流沙量/胶泡说明",
     content: [
-      { text: "因气压温度等影响，高原等地区流沙类制品易产生大气泡，不在售后范围，介意请勿购买，请勿赌。", highlight: true },
+      { text: "因气压温度等影响，高原等地区流沙类制品易产生气泡，不在售后范围，介意请勿购买，请勿赌。", highlight: true },
       { text: "单个放置的流沙量不可控（随缘），不算瑕疵不售后，如需自定义流沙量请标明什么闪粉需要几勺。边缘可能会有些许闪粉卡住属于正常现象。" },
-      { text: "边缘偶见小气泡【胶泡】工艺贴合所致无法完全避免，不售后。" },
-      { text: "关于“二次创作”：图片需要手工雕刻，这属于手作过程中的二次创作。图片尺寸也会进行合理裁剪。为了最终效果，请允许我做“亿点点”简化。" }
+      { text: "边缘偶见小气泡【胶泡】工艺贴合所致无法完全避免，不售后。" }
     ]
   },
   unboxing: {
@@ -91,17 +90,17 @@ export const DISCLAIMER_CONTENT = {
 // =================================================================
 export const CONSULTATION_CONTENT = {
   title: "✨ 召唤工坊主",
-  desc: "(与其说是客服，不如说是陪你一起脑洞大开的 NPC。)",
-  copyTemplate: "[特殊委托] 客户申请深度定制/推荐服务，请接入人工咨询。", // 保留用于兼容逻辑
+  desc: "(不是客服，是负责把模糊心意翻译成现实的常驻 NPC)",
+  copyTemplate: "[特殊委托] 客户申请深度定制 / 风格推荐，请接入人工意识节点。", // 保留用于兼容逻辑
   card: {
     name: "小狼SLE",
-    tags: ["StarrySand 主理人", "熬夜冠军", "并不社恐(大概)"],
-    caption: "扫描水晶，入侵信号频段",
+    tags: ["StarrySand 主理人", "审美在线但慢热", "不加班但会认真"],
+    caption: "截屏保存微信→扫码添加，记得备注来意。",
     id: "WeChat: xiaolangSLE",
     qrImage: "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=xiaolangSLE&bgcolor=fff&color=e11d48", 
     avatar: "https://i.pravatar.cc/150?u=wolf_avatar"
   },
-  tip: "* 添加时若能备注“流麻”二字，通关速度 +100% 哦！"
+  tip: "* P.S. 申请好友时请备注“流麻定制”，否则小狼可能会因为社恐而不敢通过哦…"
 };
 
 export const LOADING_IMAGES = [
@@ -183,7 +182,7 @@ export const PROCESS_CONTENT = {
     { name: '手机伴侣款', size: '7.5×13cm', price: '63r', priceNum: 63, isSmallSize: false, desc: '修长比例，适合竖构图', image: 'https://picsum.photos/seed/size63/400/300', isRecommended: true },
     { name: '记忆珍藏版', size: '10×15cm', price: '73r', priceNum: 73, isSmallSize: false, desc: '标准相框大小，细节最丰富', image: 'https://picsum.photos/seed/size73/400/300' },
     { name: '艺术典藏级', size: '11×20cm', price: '83r', priceNum: 83, isSmallSize: false, desc: '巨幅画布，震撼视觉', image: 'https://picsum.photos/seed/size83/400/300' },
-    { name: '萌趣挂件系', size: '< 8cm', price: '35r', priceNum: 35, isSmallSize: true, desc: '任意形状，随身携带', triggerWish: true, image: 'https://picsum.photos/seed/size35/400/300' },
+    { name: '萌趣挂件系', size: '< 8cm', price: '35r', priceNum: 35, isSmallSize: true, desc: '迷你形状，随身携带', triggerWish: true, image: 'https://picsum.photos/seed/size35/400/300' },
     { name: '随身卡包级', size: '8.5×5.5cm', price: '48r', priceNum: 48, isSmallSize: true, desc: '小巧玲珑，刚好放入卡包', triggerWish: true, image: 'https://picsum.photos/seed/size48/400/300' },
   ],
   sizeNote: "* 最终价格会根据装饰的复杂程度有小幅浮动。小尺寸(随身/萌趣)享受装饰半价优惠。",
@@ -294,7 +293,7 @@ export const WISH_MODAL_CONTENT = {
     intro: "虽然是套餐，但小狼也想知道你的偏好。",
     style: {
       label: "心之所属 (风格)",
-      tags: ["#梦幻粉紫", "#暗黑哥特", "#清透夏日", "#复古油画", "#赛博朋克"],
+      tags: ["#梦幻粉紫", "#暗黑哥特", "#清透夏日", "#静谧夜空", "#赛博朋克"],
       placeholder: "或输入自定义风格..."
     },
     taboo: {
